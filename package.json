@@ -1,0 +1,28 @@
+{
+  "name": "qc-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eightuponatime/qc-backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/eightuponatime/qc-backend/issues"
+  },
+  "homepage": "https://github.com/eightuponatime/qc-backend#readme",
+  "description": "",
+  "devDependencies": {
+    "vite": "^8.0.8"
+  },
+  "dependencies": {
+    "htmx.org": "^2.0.8"
+  }
+}
