@@ -6,7 +6,10 @@ export default defineConfig({
         emptyOutDir: true,
         manifest: true,
         rollupOptions: {
-            input: '/frontend/main.js'
+            input: {
+                main: '/frontend/main.js',
+                fingerprint: '/frontend/fingerprint.js'
+            }
         }
     }
 });
