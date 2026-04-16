@@ -110,3 +110,17 @@ export async function getVisitorId() {
     // const { isVotedToday } = await response.json()
     // console.log(isVotedToday)
 })()
+
+const getNetworkInfo = async () => {
+    const type = navigator.connection?.type || 'unknown'
+    set("net-type", type)
+
+    const response = await fetch("/api/network-info")
+    const { ip } = await response.json()
+    set("net-ip", ip)
+}
+
+    ; (async () => {
+        const visitorId = await getVisitorId()
+        await getNetworkInfo()
+    })()
