@@ -10,7 +10,7 @@ const getDeepWebGL = () => {
         vendor: debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : 'unknown',
 
         // hardware limits
-        maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE), // texture size (ex. 16384)
+        maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
         maxRenderBufferSize: gl.getParameter(gl.MAX_RENDERBUFFER_SIZE),
         maxAttributes: gl.getParameter(gl.MAX_VERTEX_ATTRIBS),
 
@@ -20,24 +20,6 @@ const getDeepWebGL = () => {
         // supported extensions
         extensions: gl.getSupportedExtensions().length
     };
-};
-
-const getCanvasFingerprint = () => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 240;
-    canvas.height = 60;
-
-    ctx.textBaseline = "top";
-    ctx.font = "14px 'Arial'";
-    ctx.fillStyle = "#f60";
-    ctx.fillRect(125, 1, 62, 20);
-    ctx.fillStyle = "#069";
-    ctx.fillText("Unique-ID <canvas> 😃", 2, 15);
-    ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
-    ctx.fillText("Unique-ID <canvas> 😃", 4, 17);
-
-    return canvas.toDataURL();
 };
 
 const getAudioFingerprint = async () => {
@@ -83,9 +65,6 @@ export async function getVisitorId() {
     const webgl = getDeepWebGL()
     set("fp-webgl", webgl)
 
-    const canvas = getCanvasFingerprint()
-    set("fp-canvas", canvas.slice(0, 30) + "...") // dataURL длинный
-
     const audio = await getAudioFingerprint()
     set("fp-audio", audio)
 
@@ -98,7 +77,7 @@ export async function getVisitorId() {
     const screen_ = `${screen.width}x${screen.height}`
     set("fp-screen", screen_)
 
-    const id = cyrb53(JSON.stringify({ webgl, canvas, audio, cores, ram, screen: screen_ }))
+    const id = cyrb53(JSON.stringify({ webgl, audio, cores, ram, screen: screen_ }))
     const visitorId = id.toString(36)
     set("fp-result", visitorId)
 
