@@ -8,9 +8,12 @@ import (
 )
 
 type Config struct {
-	DatabaseURL string
-	Port        string
-	Env         string
+	DatabaseURL      string
+	Port             string
+	Env              string
+	StaticExternalIp string
+	GeoLongitude     string
+	GeoLatitude      string
 }
 
 func Load() (*Config, error) {
@@ -20,9 +23,12 @@ func Load() (*Config, error) {
 	}
 
 	return &Config{
-		DatabaseURL: getEnv("DATABASE_URL", ""),
-		Port:        getEnv("PORT", "8080"),
-		Env:         getEnv("ENV", "development"),
+		DatabaseURL:      getEnv("DATABASE_URL", ""),
+		Port:             getEnv("PORT", "8080"),
+		Env:              getEnv("ENV", "development"),
+		StaticExternalIp: getEnv("STATIC_EXTERNAL_IP", ""),
+		GeoLongitude:     getEnv("GEO_LONGITUDE", ""),
+		GeoLatitude:      getEnv("GEO_LATITUDE", ""),
 	}, nil
 }
 

@@ -9,8 +9,8 @@
 
 <body>
     {{ template "content" . }}
-    <script src="{{ asset "frontend/main.js" }}"></script>
-    <script src="{{ asset "frontend/fingerprint.js" }}"></script>
+    <script type="module" src="{{ asset "frontend/main.js" }}"></script>
+    <script src="{{ asset "frontend/device_data.js" }}"></script>
 </body>
 
 </html>

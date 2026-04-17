@@ -1,15 +1,19 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
-	"net"
 	"net/http"
 	"qc/config"
+	"qc/internal/handler"
+	appMiddleware "qc/internal/middleware"
+	"qc/internal/repository/postgres"
+	"qc/internal/service/impl"
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -18,11 +22,31 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
+	db, err := sqlx.Connect("postgres", cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("failed to connect to database: %v", err)
+	}
+	defer db.Close()
+	log.Println("connected to database")
+
 	err = loadManifest()
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to load manifest: %v", err)
 	}
 	initTemplates()
+
+	// repository
+	voteRepo := postgres.NewVoteRepository(db)
+	txManager := postgres.NewTransactionManager(db)
+
+	// service
+	voteService := impl.NewVoteService(voteRepo, txManager, cfg)
+
+	// handler
+	voteHandler := handler.NewVoteHandler(voteService)
+
+	// middleware
+	authRequired := appMiddleware.AuthRequired(cfg)
 
 	r := chi.NewRouter()
 	r.Use(chiMiddleware.Logger)
@@ -34,6 +58,7 @@ func main() {
 	}))
 
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		err := tmpl.ExecuteTemplate(w, "base.html", map[string]any{
 			"Title": "Home",
@@ -43,23 +68,9 @@ func main() {
 		}
 	})
 
-	r.Get("/api/network-info", func(w http.ResponseWriter, r *http.Request) {
-		ip := r.Header.Get("X-Real-IP")
-		if ip == "" {
-			host, _, err := net.SplitHostPort(r.RemoteAddr)
-			if err != nil {
-				host = r.RemoteAddr
-			}
-			ip = host
-		}
+	voteHandler.RegisterRoutes(r, authRequired)
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
-			"ip": ip,
-		})
-	})
-
-	log.Printf("starting server api on port %s", cfg.Port)
+	log.Printf("starting server on port %s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
 		log.Fatal(err)
 	}
