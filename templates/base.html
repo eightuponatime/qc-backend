@@ -1,7 +1,7 @@
-<html>
+<html lang="{{ .Lang }}">
 
 <head>
-    <title>quality control</title>
+    <title>{{ index .T "title" }}</title>
     <style>
         word-break: break-all;
     </style>
@@ -10,7 +10,6 @@
 <body>
     {{ template "content" . }}
     <script type="module" src="{{ asset "frontend/main.js" }}"></script>
-    <script src="{{ asset "frontend/device_data.js" }}"></script>
 </body>
 
 </html>

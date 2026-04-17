@@ -14,6 +14,8 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+
+	"qc/internal/i18n"
 )
 
 func main() {
@@ -60,8 +62,22 @@ func main() {
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		err := tmpl.ExecuteTemplate(w, "base.html", map[string]any{
+		lang := i18n.DetectLanguage(r)
+
+		translations, err := i18n.Load(lang)
+		if err != nil {
+			lang = "ru"
+			translations, err = i18n.Load(lang)
+			if err != nil {
+				http.Error(w, "failed to load translations", http.StatusInternalServerError)
+				return
+			}
+		}
+
+		err = tmpl.ExecuteTemplate(w, "base.html", map[string]any{
 			"Title": "Home",
+			"Lang":  lang,
+			"T":     translations,
 		})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
