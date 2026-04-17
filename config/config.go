@@ -14,6 +14,7 @@ type Config struct {
 	StaticExternalIp string
 	GeoLongitude     string
 	GeoLatitude      string
+	BusinessTimezone string
 }
 
 func Load() (*Config, error) {
@@ -29,6 +30,7 @@ func Load() (*Config, error) {
 		StaticExternalIp: getEnv("STATIC_EXTERNAL_IP", ""),
 		GeoLongitude:     getEnv("GEO_LONGITUDE", ""),
 		GeoLatitude:      getEnv("GEO_LATITUDE", ""),
+		BusinessTimezone: getEnv("BUSINESS_TIMEZONE", "Asia/Almaty"),
 	}, nil
 }
 

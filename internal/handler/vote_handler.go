@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"qc/internal/dto"
 	"qc/internal/service"
+	"log"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -52,12 +53,12 @@ func (v *VoteHandler) GetTodayVote(w http.ResponseWriter, r *http.Request) {
 
 	vote, err := v.voteService.GetTodayVote(r.Context(), deviceId)
 	if err != nil {
+		log.Printf("GetTodayVote error: %+v", err)
 		http.Error(w, `{"error":"failed to get vote"}`, http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	// vote == nil means that didn't vote today yet
 	json.NewEncoder(w).Encode(vote)
 }
 

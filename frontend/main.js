@@ -1,7 +1,8 @@
 import "htmx.org"
-import { getDeviceData } from "./device_data.js"
+import { getOrCreateDeviceId, getBrowserInfo } from "./device_data.js"
 
-(async () => {
-    const data = await getDeviceData()
-    console.log(data)
-})()
+const deviceId = getOrCreateDeviceId();
+const browserInfo = getBrowserInfo();
+
+console.log("device_id:", deviceId);
+console.log("browser info:", browserInfo);

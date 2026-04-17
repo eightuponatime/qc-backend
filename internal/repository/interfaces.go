@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"qc/internal/domain"
+	"time"
 )
 
 type TransactionManager interface {
@@ -10,7 +11,7 @@ type TransactionManager interface {
 }
 
 type VoteRepository interface {
-	CreateVote(ctx context.Context, voteRequest domain.VoteModel) error
-	UpdateVote(ctx context.Context, voteUpdate domain.VoteUpdateModel) error
-	GetTodayVote(ctx context.Context, deviceId string) (*domain.VoteModel, error)
+	CreateVote(ctx context.Context, vote domain.VoteModel) error
+	UpdateVote(ctx context.Context, vote domain.VoteUpdateModel, businessDate time.Time) error
+	GetTodayVote(ctx context.Context, deviceId string, businessDate time.Time) (*domain.VoteModel, error)
 }
