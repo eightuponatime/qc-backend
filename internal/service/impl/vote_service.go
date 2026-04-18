@@ -1,4 +1,3 @@
-// service/impl/vote_service.go
 package impl
 
 import (
@@ -40,38 +39,44 @@ func (s *VoteServiceImpl) CreateVote(ctx context.Context, req dto.VoteRequestDto
 			return fmt.Errorf("get business date: %w", err)
 		}
 
-		existing, err := s.voteRepo.GetTodayVote(ctx, req.DeviceId, businessDate)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("check existing vote: %w", err)
-		}
+		vote, err := s.voteRepo.GetVoteByDay(ctx, req.DeviceId, businessDate)
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				return fmt.Errorf("get vote by day: %w", err)
+			}
 
-		if existing == nil {
-			vote := domain.VoteModel{
+			voteToCreate := domain.VoteModel{
 				DeviceId:     req.DeviceId,
 				PhoneModel:   req.PhoneModel,
 				Browser:      req.Browser,
 				ExternalIP:   externalIp,
 				BusinessDate: businessDate,
-				Breakfast:    req.Breakfast,
-				Lunch:        req.Lunch,
-				Dinner:       req.Dinner,
-				BreakfastAt:  timestampIfNotNil(req.Breakfast, now),
-				LunchAt:      timestampIfNotNil(req.Lunch, now),
-				DinnerAt:     timestampIfNotNil(req.Dinner, now),
 			}
-			return s.voteRepo.CreateVote(ctx, vote)
+
+			vote, err = s.voteRepo.CreateVote(ctx, voteToCreate)
+			if err != nil {
+				return fmt.Errorf("create vote: %w", err)
+			}
 		}
 
-		update := domain.VoteUpdateModel{
-			DeviceId:    req.DeviceId,
-			Breakfast:   req.Breakfast,
-			Lunch:       req.Lunch,
-			Dinner:      req.Dinner,
-			BreakfastAt: timestampIfNotNil(req.Breakfast, now),
-			LunchAt:     timestampIfNotNil(req.Lunch, now),
-			DinnerAt:    timestampIfNotNil(req.Dinner, now),
+		for _, item := range req.Items {
+			if !isValidMealType(item.MealType) {
+				return fmt.Errorf("invalid meal type: %s", item.MealType)
+			}
+
+			voteItem := domain.VoteItemModel{
+				VoteId:   vote.Id,
+				MealType: item.MealType,
+				Rating:   item.Rating,
+				Review:   item.Review,
+			}
+
+			if err := s.voteRepo.UpsertVoteItem(ctx, voteItem); err != nil {
+				return fmt.Errorf("upsert vote item (%s): %w", item.MealType, err)
+			}
 		}
-		return s.voteRepo.UpdateVote(ctx, update, businessDate)
+
+		return nil
 	})
 }
 
@@ -81,26 +86,31 @@ func (s *VoteServiceImpl) GetTodayVote(ctx context.Context, deviceId string) (*d
 		return nil, fmt.Errorf("get business date: %w", err)
 	}
 
-	vote, err := s.voteRepo.GetTodayVote(ctx, deviceId, businessDate)
+	vote, err := s.voteRepo.GetVoteByDay(ctx, deviceId, businessDate)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("get today vote: %w", err)
+		return nil, fmt.Errorf("get vote by day: %w", err)
+	}
+
+	items, err := s.voteRepo.GetVoteItems(ctx, vote.Id)
+	if err != nil {
+		return nil, fmt.Errorf("get vote items: %w", err)
+	}
+
+	responseItems := make([]dto.VoteMealItemResponseDto, 0, len(items))
+	for _, item := range items {
+		responseItems = append(responseItems, dto.VoteMealItemResponseDto{
+			MealType: item.MealType,
+			Rating:   item.Rating,
+			Review:   item.Review,
+		})
 	}
 
 	return &dto.VoteResponseDto{
-		Breakfast: vote.Breakfast,
-		Lunch:     vote.Lunch,
-		Dinner:    vote.Dinner,
+		Items: responseItems,
 	}, nil
-}
-
-func timestampIfNotNil(val *int16, t time.Time) *time.Time {
-	if val == nil {
-		return nil
-	}
-	return &t
 }
 
 func (s *VoteServiceImpl) getBusinessDate(now time.Time) (time.Time, error) {
@@ -120,4 +130,13 @@ func (s *VoteServiceImpl) getBusinessDate(now time.Time) (time.Time, error) {
 	)
 
 	return businessDate, nil
+}
+
+func isValidMealType(mealType string) bool {
+	switch mealType {
+	case "breakfast", "lunch", "dinner":
+		return true
+	default:
+		return false
+	}
 }

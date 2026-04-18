@@ -1,0 +1,28 @@
+{{ define "today_vote.html" }}
+  <div>
+    <h2>Сегодняшняя оценка</h2>
+
+    {{ if .Vote }}
+      {{ if .Vote.Items }}
+        {{ range .Vote.Items }}
+          <div>
+            <p>
+              {{ if eq .MealType "breakfast" }}Завтрак{{ end }}
+              {{ if eq .MealType "lunch" }}Обед{{ end }}
+              {{ if eq .MealType "dinner" }}Ужин{{ end }}:
+              {{ if .Rating }}{{ .Rating }}{{ else }}—{{ end }}
+            </p>
+
+            {{ if .Review }}
+              <p>Отзыв: {{ .Review }}</p>
+            {{ end }}
+          </div>
+        {{ end }}
+      {{ else }}
+        <p>Сегодня ещё нет голосов.</p>
+      {{ end }}
+    {{ else }}
+      <p>Сегодня ещё нет голосов.</p>
+    {{ end }}
+  </div>
+{{ end }}

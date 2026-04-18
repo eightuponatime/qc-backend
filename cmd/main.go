@@ -45,7 +45,7 @@ func main() {
 	voteService := impl.NewVoteService(voteRepo, txManager, cfg)
 
 	// handler
-	voteHandler := handler.NewVoteHandler(voteService)
+	voteHandler := handler.NewVoteHandler(voteService, tmpl)
 
 	// middleware
 	authRequired := appMiddleware.AuthRequired(cfg)
