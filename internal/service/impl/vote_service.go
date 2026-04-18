@@ -64,6 +64,10 @@ func (s *VoteServiceImpl) CreateVote(ctx context.Context, req dto.VoteRequestDto
 				return fmt.Errorf("invalid meal type: %s", item.MealType)
 			}
 
+			if err := s.validateMealTime(now, item.MealType); err != nil {
+				return err
+			}
+
 			voteItem := domain.VoteItemModel{
 				VoteId:   vote.Id,
 				MealType: item.MealType,
@@ -75,6 +79,7 @@ func (s *VoteServiceImpl) CreateVote(ctx context.Context, req dto.VoteRequestDto
 				return fmt.Errorf("upsert vote item (%s): %w", item.MealType, err)
 			}
 		}
+
 
 		return nil
 	})
@@ -139,4 +144,32 @@ func isValidMealType(mealType string) bool {
 	default:
 		return false
 	}
+}
+
+func (s *VoteServiceImpl) validateMealTime(now time.Time, mealType string) error {
+	location, err := time.LoadLocation(s.cfg.BusinessTimezone)
+	if err != nil {
+		return fmt.Errorf("load business timezone: %w", err)
+	}
+
+	localNow := now.In(location)
+	currentMinutes := localNow.Hour()*60 + localNow.Minute()
+
+	var allowedFromMinutes int
+	switch mealType {
+	case "breakfast":
+		allowedFromMinutes = 6 * 60
+	case "lunch":
+		allowedFromMinutes = 12 * 60
+	case "dinner":
+		allowedFromMinutes = 17 * 60
+	default:
+		return fmt.Errorf("invalid meal type: %s", mealType)
+	}
+
+	if currentMinutes < allowedFromMinutes {
+		return fmt.Errorf("%s is not available yet", mealType)
+	}
+
+	return nil
 }
