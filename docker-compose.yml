@@ -29,7 +29,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@postgres:5432/quality_control?sslmode=disable}
-      PORT: ${APP_PORT:-8080}
+      PORT: ${PORT:-8080}
       ENV: ${ENV:-production}
       STATIC_EXTERNAL_IP: ${STATIC_EXTERNAL_IP:-::1}
       BUSINESS_TIMEZONE: ${BUSINESS_TIMEZONE:-Asia/Almaty}
@@ -42,7 +42,7 @@ services:
       REPORT_TO: ${REPORT_TO:-}
       ANALYTICS_URL: ${ANALYTICS_URL:-http://localhost:8080/analytics}
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "${PORT:-8080}:8080"
 
   seed-demo:
     image: postgres:16-alpine
