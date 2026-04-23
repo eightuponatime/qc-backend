@@ -16,6 +16,7 @@ RUN go build -o server ./cmd
 
 FROM alpine:3.19
 WORKDIR /app
+RUN apk add --no-cache tzdata
 COPY --from=backend /app/server .
 COPY --from=backend /app/static/dist ./static/dist
 COPY --from=backend /app/templates ./templates
