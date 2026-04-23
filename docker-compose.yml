@@ -42,7 +42,7 @@ services:
       REPORT_TO: ${REPORT_TO:-}
       ANALYTICS_URL: ${ANALYTICS_URL:-http://localhost:8080/analytics}
     ports:
-      - "${PORT:-8080}:8080"
+      - "${PORT:-8080}:${PORT:-8080}"
 
   seed-demo:
     image: postgres:16-alpine
