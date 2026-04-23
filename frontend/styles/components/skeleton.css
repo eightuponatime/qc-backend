@@ -1,0 +1,49 @@
+.skeleton-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.skeleton-card {
+  opacity: 0.9;
+}
+
+/* base element */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #e5e7eb 25%,
+    #f3f4f6 37%,
+    #e5e7eb 63%
+  );
+  background-size: 400% 100%;
+  animation: skeletonLoading 1.4s ease infinite;
+  border-radius: 8px;
+}
+
+/* forms */
+.skeleton-title {
+  width: 120px;
+  height: 18px;
+}
+
+.skeleton-text {
+  width: 80px;
+  height: 12px;
+  margin-top: 6px;
+}
+
+.skeleton-stars {
+  width: 100px;
+  height: 18px;
+}
+
+/* animation */
+@keyframes skeletonLoading {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}

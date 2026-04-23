@@ -1,15 +1,44 @@
 <html lang="{{ .Lang }}">
-
 <head>
     <title>{{ index .T "title" }}</title>
-    <style>
-        word-break: break-all;
-    </style>
-</head>
 
+    {{ range assetCSS "frontend/main.js" }}
+      <link rel="stylesheet" href="{{ . }}">
+    {{ end }}
+</head>
 <body>
+    <div class="lang-switcher">
+        <a
+          href="/?lang=ru"
+          class="{{ if eq .Lang "ru" }}lang-switcher__link lang-switcher__link--active{{ else }}lang-switcher__link{{ end }}"
+        >
+          RU
+        </a>
+
+        <a
+          href="/?lang=kk"
+          class="{{ if eq .Lang "kk" }}lang-switcher__link lang-switcher__link--active{{ else }}lang-switcher__link{{ end }}"
+        >
+          KK
+        </a>
+
+        <a
+          href="/?lang=en"
+          class="{{ if eq .Lang "en" }}lang-switcher__link lang-switcher__link--active{{ else }}lang-switcher__link{{ end }}"
+        >
+          EN
+        </a>
+    </div>
+
+    <div id="global-error" class="ui-message ui-message--error" hidden></div>
+
     {{ template "content" . }}
+
+    <script>
+      window.__i18n = {{ toJSON .T }};
+      window.__lang = "{{ .Lang }}";
+    </script>
+
     <script type="module" src="{{ asset "frontend/main.js" }}"></script>
 </body>
-
 </html>

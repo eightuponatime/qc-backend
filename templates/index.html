@@ -1,5 +1,7 @@
 {{ define "content" }}
-<div id="today-vote-container">
-  Загрузка...
-</div>
+  <div id="global-error" class="ui-message ui-message--error" hidden></div>
+
+  <div id="vote-ui-container">
+    {{ template "skeleton_vote_ui.html" . }}
+  </div>
 {{ end }}

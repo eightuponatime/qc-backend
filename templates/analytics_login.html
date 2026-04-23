@@ -1,0 +1,32 @@
+{{ define "analytics_login.html" }}
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ .Title }}</title>
+  {{ range assetCSS "frontend/main.js" }}
+    <link rel="stylesheet" href="{{ . }}">
+  {{ end }}
+</head>
+<body class="analytics-page">
+  <main class="analytics-login">
+    <section class="analytics-login__card">
+      <p class="analytics-kicker">Контроль качества питания</p>
+      <h1>Доступ к аналитике</h1>
+      <p class="analytics-muted">Введите код из письма. Он открывает страницу с подробной сводкой и прошлыми периодами.</p>
+
+      {{ if .Error }}
+        <div class="analytics-alert">{{ .Error }}</div>
+      {{ end }}
+
+      <form method="post" action="{{ .PostURL }}" class="analytics-login__form">
+        <label for="code">Код доступа</label>
+        <input id="code" name="code" value="{{ .Code }}" placeholder="ABCD-1234-EF56" autocomplete="one-time-code" required>
+        <button type="submit">Открыть аналитику</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
+{{ end }}

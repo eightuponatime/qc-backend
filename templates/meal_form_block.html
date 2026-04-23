@@ -1,0 +1,146 @@
+{{ define "meal_form_block.html" }}
+  {{ $mealType := .MealType }}
+  {{ $item := .Item }}
+  {{ $isPrefillMeal := eq .PrefillMealType $mealType }}
+
+  <details
+    class="meal-card {{ if $item }}meal-card--rated{{ else }}meal-card--empty{{ end }}"
+    {{ if or (not $item) (eq .ActiveMeal $mealType) }}open{{ end }}
+  >
+    <summary class="meal-card__summary">
+      <div class="meal-card__summary-left">
+        <h3 class="meal-card__title">{{ mealLabel $mealType .T }}</h3>
+        <p class="meal-card__status">
+          {{ if $item }}
+            {{ index .T "ui.already_rated" }}
+          {{ else }}
+            {{ index .T "ui.not_rated_yet" }}
+          {{ end }}
+        </p>
+      </div>
+
+      <div class="meal-card__summary-right">
+        <span class="meal-card__stars">
+          {{ if $item }}{{ stars $item.Rating }}{{ else }}—{{ end }}
+        </span>
+
+        <span class="meal-card__summary-hint meal-card__summary-hint--closed">
+          {{ index .T "ui.open" }}
+        </span>
+
+        <span class="meal-card__summary-hint meal-card__summary-hint--open">
+          {{ index .T "ui.close" }}
+        </span>
+      </div>
+    </summary>
+
+    {{ if and .AccessRestricted (eq .ActiveMeal $mealType) }}
+    <div
+      class="access-warning"
+      data-meal-type="{{ $mealType }}"
+      data-rating="{{ .PrefillRating }}"
+      data-review="{{ .PrefillReview }}"
+    >
+      <p>
+        {{ if eq .AccessReason "corporate_wifi_required" }}
+          {{ index .T "errors.corporate_wifi_required" }}
+        {{ end }}
+      </p>
+
+      <div class="meal-card__actions">
+        {{ if .AccessDismissible }}
+          <button
+            type="button"
+            class="access-warning__button"
+            onclick="dismissAccessWarning(this)"
+          >
+            {{ index .T "ui.dismiss" }}
+          </button>
+        {{ end }}
+      </div>
+    </div>
+  {{ end }}
+
+
+      <form
+        hx-post="/fragments/vote"
+        hx-target="#vote-ui-container"
+        hx-swap="innerHTML"
+        hx-indicator="#{{ $mealType }}-loading"
+        class="meal-card__content js-meal-vote-form"
+        data-initial-rating="{{ if and $item $item.Rating }}{{ $item.Rating }}{{ end }}"
+        data-initial-review="{{ if and $item $item.Review }}{{ $item.Review }}{{ else }}{{ end }}"
+        data-has-existing-vote="{{ if $item }}true{{ else }}false{{ end }}"
+        {{ if and .AccessRestricted (eq .ActiveMeal $mealType) }}hidden{{ end }}
+      >
+        <input type="hidden" name="device_id" value="{{ .DeviceId }}">
+        <input type="hidden" name="phone_model" value="{{ .PhoneModel }}">
+        <input type="hidden" name="browser" value="{{ .Browser }}">
+        <input type="hidden" name="meal_type" value="{{ $mealType }}">
+
+        <div class="meal-card__form">
+
+          <label class="meal-card__label">
+            {{ if $item }}
+              {{ index .T "ui.change_rating" }}
+            {{ else }}
+              {{ index .T "ui.rating" }}
+            {{ end }}
+          </label>
+
+          <div class="star-rating">
+            <input type="radio" id="{{ $mealType }}-star5" name="rating" value="5"
+              {{ if or (and $item (ratingEq $item.Rating 5)) (and $isPrefillMeal (eq .PrefillRating "5")) }}checked{{ end }}>
+            <label for="{{ $mealType }}-star5" title="5">★</label>
+
+            <input type="radio" id="{{ $mealType }}-star4" name="rating" value="4"
+              {{ if or (and $item (ratingEq $item.Rating 4)) (and $isPrefillMeal (eq .PrefillRating "4")) }}checked{{ end }}>
+            <label for="{{ $mealType }}-star4" title="4">★</label>
+
+            <input type="radio" id="{{ $mealType }}-star3" name="rating" value="3"
+              {{ if or (and $item (ratingEq $item.Rating 3)) (and $isPrefillMeal (eq .PrefillRating "3")) }}checked{{ end }}>
+            <label for="{{ $mealType }}-star3" title="3">★</label>
+
+            <input type="radio" id="{{ $mealType }}-star2" name="rating" value="2"
+              {{ if or (and $item (ratingEq $item.Rating 2)) (and $isPrefillMeal (eq .PrefillRating "2")) }}checked{{ end }}>
+            <label for="{{ $mealType }}-star2" title="2">★</label>
+
+            <input type="radio" id="{{ $mealType }}-star1" name="rating" value="1"
+              {{ if or (and $item (ratingEq $item.Rating 1)) (and $isPrefillMeal (eq .PrefillRating "1")) }}checked{{ end }}>
+            <label for="{{ $mealType }}-star1" title="1">★</label>
+          </div>
+
+          <label class="meal-card__label" for="{{ $mealType }}_review">
+            {{ index .T "ui.review" }}
+          </label>
+
+          <textarea
+            class="meal-card__textarea"
+            id="{{ $mealType }}_review"
+            name="review"
+            placeholder="{{ index .T "ui.review_placeholder" }}"
+          >{{ if and $isPrefillMeal .PrefillReview }}{{ .PrefillReview }}{{ else if and $item $item.Review }}{{ $item.Review }}{{ end }}</textarea>
+        </div>
+
+        <div class="meal-card__actions">
+          <button class="meal-card__button" type="submit" disabled>
+            {{ if $item }}
+              {{ index .T "ui.update" }}
+            {{ else }}
+              {{ index .T "ui.save" }}
+            {{ end }}
+          </button>
+
+          <span id="{{ $mealType }}-loading" class="htmx-indicator meal-card__loading">
+            {{ index .T "ui.saving" }}
+          </span>
+        </div>
+
+        {{ if and .SuccessMessage (eq .ActiveMeal $mealType) }}
+          <div class="meal-card__success">
+            ✔ {{ index .T "ui.saved" }}
+          </div>
+        {{ end }}
+      </form>
+  </details>
+{{ end }}

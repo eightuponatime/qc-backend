@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: qc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-quality_control}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-quality_control}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qc-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@postgres:5432/quality_control?sslmode=disable}
+      PORT: ${APP_PORT:-8080}
+      ENV: ${ENV:-production}
+      STATIC_EXTERNAL_IP: ${STATIC_EXTERNAL_IP:-::1}
+      BUSINESS_TIMEZONE: ${BUSINESS_TIMEZONE:-Asia/Almaty}
+      SHIFT_START_DATE: ${SHIFT_START_DATE:-2026-04-08}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      REPORT_TO: ${REPORT_TO:-}
+      ANALYTICS_URL: ${ANALYTICS_URL:-http://localhost:8080/analytics}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+
+  seed-demo:
+    image: postgres:16-alpine
+    profiles: ["seed"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-quality_control}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+    volumes:
+      - ./seeds/report_demo_seed.sql:/seed/report_demo_seed.sql:ro
+    command:
+      [
+        "sh",
+        "-c",
+        "psql -h postgres -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\" -f /seed/report_demo_seed.sql"
+      ]
+
+volumes:
+  postgres_data:

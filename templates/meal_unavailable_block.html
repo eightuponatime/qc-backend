@@ -1,0 +1,32 @@
+{{ define "meal_unavailable_block.html" }}
+  {{ $mealType := .MealType }}
+
+  <div
+    class="meal-card meal-card--disabled"
+    data-opens-at="{{ .OpensAt }}"
+    data-minutes-until-open="{{ .MinutesUntilOpen }}"
+    data-server-now="{{ .ServerNowISO }}"
+  >
+    <div class="meal-card__summary">
+      <div class="meal-card__summary-left">
+        <h3 class="meal-card__title">{{ mealLabel $mealType .T }}</h3>
+        <p class="meal-card__status meal-card__status--countdown">
+          {{ index .T "ui.not_available_yet" }}
+        </p>
+      </div>
+
+      <div class="meal-card__summary-right">
+        <span class="meal-card__stars">—</span>
+      </div>
+    </div>
+
+    <div class="meal-card__content">
+      <div class="meal-card__current">
+        <p><strong>{{ index .T "ui.opens_at" }}:</strong> {{ .OpensAt }}</p>
+        <p class="meal-card__countdown">
+          {{ index .T "ui.remaining" }}: —
+        </p>
+      </div>
+    </div>
+  </div>
+{{ end }}

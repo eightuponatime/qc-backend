@@ -15,6 +15,14 @@ type Config struct {
 	GeoLongitude     string
 	GeoLatitude      string
 	BusinessTimezone string
+	ShiftStartDate   string
+	SmtpHost         string
+	SmtpPort         string
+	SmtpUsername     string
+	SmtpPassword     string
+	SmtpFrom         string
+	ReportTo         string
+	AnalyticsURL     string
 }
 
 func Load() (*Config, error) {
@@ -31,6 +39,14 @@ func Load() (*Config, error) {
 		GeoLongitude:     getEnv("GEO_LONGITUDE", ""),
 		GeoLatitude:      getEnv("GEO_LATITUDE", ""),
 		BusinessTimezone: getEnv("BUSINESS_TIMEZONE", "Asia/Almaty"),
+		ShiftStartDate:   getEnv("SHIFT_START_DATE", "2026-04-01"),
+		SmtpHost:         getEnv("SMTP_HOST", "smtp.gmail.com"),
+		SmtpPort:         getEnv("SMTP_PORT", "587"),
+		SmtpUsername:     getEnv("SMTP_USERNAME", ""),
+		SmtpPassword:     getEnv("SMTP_PASSWORD", ""),
+		SmtpFrom:         getEnv("SMTP_FROM", ""),
+		ReportTo:         getEnv("REPORT_TO", ""),
+		AnalyticsURL:     getEnv("ANALYTICS_URL", "http://localhost:8080/analytics"),
 	}, nil
 }
 

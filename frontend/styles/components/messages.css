@@ -1,0 +1,15 @@
+.ui-message {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+}
+
+.ui-message--success {
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+}
+
+.ui-message--error {
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+}

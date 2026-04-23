@@ -16,6 +16,21 @@ type VoteRepository interface {
 	GetVoteItems(ctx context.Context, voteId uuid.UUID) ([]domain.VoteItemModel, error)
 }
 
+type ReportRepository interface {
+	GetAllVotes(ctx context.Context) (*[]domain.ReportModel, error)
+}
+
+type SentReportRepository interface {
+	ExistsByPeriod(ctx context.Context, periodStart, periodEnd time.Time) (bool, error)
+	MarkAsSent(ctx context.Context, periodStart, periodEnd time.Time) error
+	List(ctx context.Context) ([]domain.SentReportModel, error)
+}
+
+type AnalyticsAccessRepository interface {
+	Create(ctx context.Context, codeHash string, validFrom, validUntil time.Time) error
+	ExistsValid(ctx context.Context, codeHash string, businessDate time.Time) (bool, error)
+}
+
 type TransactionManager interface {
 	WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
 }

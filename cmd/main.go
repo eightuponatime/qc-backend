@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"qc/config"
 	"qc/internal/handler"
+	appLogger "qc/internal/logger"
 	appMiddleware "qc/internal/middleware"
 	"qc/internal/repository/postgres"
 	"qc/internal/service/impl"
@@ -16,6 +20,7 @@ import (
 	_ "github.com/lib/pq"
 
 	"qc/internal/i18n"
+	"time"
 )
 
 func main() {
@@ -24,28 +29,47 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
+	logger := appLogger.Setup(cfg)
+
 	db, err := sqlx.Connect("postgres", cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		logger.Error("database connection failed", slog.Any("error", err))
+		os.Exit(1)
 	}
 	defer db.Close()
-	log.Println("connected to database")
+	logger.Info("database connected")
 
 	err = loadManifest()
 	if err != nil {
-		log.Fatalf("failed to load manifest: %v", err)
+		logger.Error("manifest load failed", slog.Any("error", err))
+		os.Exit(1)
 	}
 	initTemplates()
 
 	// repository
 	voteRepo := postgres.NewVoteRepository(db)
+	reportRepo := postgres.NewReportRepository(db)
+	sentReportRepo := postgres.NewSentReportRepository(db)
+	analyticsAccessRepo := postgres.NewAnalyticsAccessRepository(db)
 	txManager := postgres.NewTransactionManager(db)
 
 	// service
 	voteService := impl.NewVoteService(voteRepo, txManager, cfg)
+	reportService := impl.NewReportService(reportRepo, cfg)
+	analyticsAccessService := impl.NewAnalyticsAccessService(analyticsAccessRepo, cfg)
+	emailService := impl.NewEmailService(reportService, analyticsAccessService, cfg)
+	reportScheduler := impl.NewReportScheduler(emailService, sentReportRepo, cfg, time.Hour)
 
 	// handler
-	voteHandler := handler.NewVoteHandler(voteService, tmpl)
+	voteHandler := handler.NewVoteHandler(voteService, tmpl, cfg)
+	reportHandler := handler.NewReportHander(reportService)
+	analyticsHandler := handler.NewAnalyticsHandler(
+		analyticsAccessService,
+		reportService,
+		sentReportRepo,
+		tmpl,
+		cfg,
+	)
 
 	// middleware
 	authRequired := appMiddleware.AuthRequired(cfg)
@@ -63,6 +87,15 @@ func main() {
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		lang := i18n.DetectLanguage(r)
+
+		http.SetCookie(w, &http.Cookie{
+			Name:     "lang",
+			Value:    lang,
+			Path:     "/",
+			MaxAge:   60 * 60 * 24 * 365,
+			HttpOnly: false,
+			SameSite: http.SameSiteLaxMode,
+		})
 
 		translations, err := i18n.Load(lang)
 		if err != nil {
@@ -85,9 +118,14 @@ func main() {
 	})
 
 	voteHandler.RegisterRoutes(r, authRequired)
+	reportHandler.RegisterRoutes(r)
+	analyticsHandler.RegisterRoutes(r)
 
-	log.Printf("starting server on port %s", cfg.Port)
+	go reportScheduler.Start(context.Background())
+
+	logger.Info("server starting", slog.String("port", cfg.Port))
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
-		log.Fatal(err)
+		logger.Error("server stopped", slog.Any("error", err))
+		os.Exit(1)
 	}
 }

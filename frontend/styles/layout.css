@@ -1,0 +1,38 @@
+#vote-ui-container {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.lang-switcher {
+  max-width: 760px;
+  margin: 0 auto 16px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.lang-switcher__link {
+  text-decoration: none;
+  color: var(--text-soft);
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 999px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.lang-switcher__link:hover {
+  color: var(--accent-dark);
+  background: rgba(17, 24, 39, 0.05);
+}
+
+.lang-switcher__link--active {
+  color: white;
+  background: var(--accent-dark);
+}
+
+.lang-switcher__link--active:hover {
+  color: white;
+  background: var(--accent-dark);
+}
