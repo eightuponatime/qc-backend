@@ -20,7 +20,7 @@
       {{ if .Periods }}
         <nav class="analytics-periods" aria-label="Периоды отчетов">
           {{ range .Periods }}
-            <a class="{{ if .IsSelected }}is-active{{ end }}" href="/analytics?period_start={{ .PeriodStart }}&period_end={{ .PeriodEnd }}">
+            <a class="{{ if .IsSelected }}is-active{{ end }}" href="{{ .URL }}">
               {{ .Display }}
             </a>
           {{ end }}
@@ -35,34 +35,44 @@
       <section class="analytics-hero">
         <p class="analytics-kicker">Контроль качества питания</p>
         <h1>{{ .Report.Summary.PeriodStartDisplay }} - {{ .Report.Summary.PeriodEndDisplay }}</h1>
+        <p>{{ .SelectedShiftLabel }}</p>
+      </section>
+
+      <section class="analytics-tabs" aria-label="Смены">
+        {{ range .ShiftTabs }}
+          <a class="analytics-tab {{ if .IsSelected }}is-active{{ end }}" href="{{ .URL }}">
+            <span>{{ .Label }}</span>
+            <strong>{{ .TotalRatings }} оценок</strong>
+          </a>
+        {{ end }}
       </section>
 
       <section class="analytics-grid analytics-grid--summary">
         <article class="analytics-card analytics-metric">
           <span>Всего оценок</span>
-          <strong>{{ .Report.Summary.TotalRatings }}</strong>
+          <strong>{{ .SelectedShiftSummary.TotalRatings }}</strong>
         </article>
         <article class="analytics-card analytics-metric">
           <span>Отзывов с текстом</span>
-          <strong>{{ .Report.Summary.TextReviewsCount }}</strong>
+          <strong>{{ .SelectedShiftSummary.TextReviewsCount }}</strong>
         </article>
       </section>
 
       <section class="analytics-card">
         <h2>Распределение оценок</h2>
         <div class="analytics-stars">
-          <div class="analytics-star analytics-star--5"><strong>5★</strong><span>{{ .Report.Summary.RatingDistribution.Five }}</span></div>
-          <div class="analytics-star analytics-star--4"><strong>4★</strong><span>{{ .Report.Summary.RatingDistribution.Four }}</span></div>
-          <div class="analytics-star analytics-star--3"><strong>3★</strong><span>{{ .Report.Summary.RatingDistribution.Three }}</span></div>
-          <div class="analytics-star analytics-star--2"><strong>2★</strong><span>{{ .Report.Summary.RatingDistribution.Two }}</span></div>
-          <div class="analytics-star analytics-star--1"><strong>1★</strong><span>{{ .Report.Summary.RatingDistribution.One }}</span></div>
+          <div class="analytics-star analytics-star--5"><strong>5★</strong><span>{{ .SelectedShiftSummary.RatingDistribution.Five }}</span></div>
+          <div class="analytics-star analytics-star--4"><strong>4★</strong><span>{{ .SelectedShiftSummary.RatingDistribution.Four }}</span></div>
+          <div class="analytics-star analytics-star--3"><strong>3★</strong><span>{{ .SelectedShiftSummary.RatingDistribution.Three }}</span></div>
+          <div class="analytics-star analytics-star--2"><strong>2★</strong><span>{{ .SelectedShiftSummary.RatingDistribution.Two }}</span></div>
+          <div class="analytics-star analytics-star--1"><strong>1★</strong><span>{{ .SelectedShiftSummary.RatingDistribution.One }}</span></div>
         </div>
       </section>
 
       <section class="analytics-card">
         <h2>По дням недели</h2>
         <div class="analytics-weekdays">
-          {{ range .Report.Summary.WeekdayStats }}
+          {{ range .SelectedShiftSummary.WeekdayStats }}
             <details class="analytics-details">
               <summary>
                 <span>{{ weekdayRu .Weekday }}</span>
@@ -77,7 +87,11 @@
               </div>
               <div class="analytics-meals">
                 {{ range .MealStats }}
-                  <div><strong>{{ mealRu .MealType }}</strong><span>Всего: {{ .TotalRatings }}</span><span>Низких: {{ .LowRatingsCount }}</span></div>
+                  <div>
+                    <strong>{{ shiftMealRu .MealType $.SelectedShift }}</strong>
+                    <span>Всего: {{ .TotalRatings }}</span>
+                    <span class="analytics-low-flag">Низких: {{ .LowRatingsCount }}</span>
+                  </div>
                 {{ end }}
               </div>
             </details>
@@ -85,36 +99,9 @@
         </div>
       </section>
 
-      {{ if .Report.Summary.Insights }}
-        <section class="analytics-card analytics-card--warm">
-          <h2>Наблюдения</h2>
-          <ul class="analytics-insights">
-            {{ range .Report.Summary.Insights }}
-              <li>{{ . }}</li>
-            {{ end }}
-          </ul>
-        </section>
-      {{ end }}
-
-      <section class="analytics-card">
-        <h2>Отзывы, требующие внимания</h2>
-        {{ if .Report.AttentionRequiredItems }}
-          <div class="analytics-reviews">
-            {{ range .Report.AttentionRequiredItems }}
-              <article class="analytics-review analytics-review--attention">
-                <div><strong>{{ .Rating }}★</strong><span>{{ .BusinessWeekday }}, {{ .BusinessDateDisplay }} · {{ mealRu .MealType }}</span></div>
-                <p>{{ if .Review }}{{ .Review }}{{ else }}Без текстового отзыва{{ end }}</p>
-              </article>
-            {{ end }}
-          </div>
-        {{ else }}
-          <p class="analytics-muted">Оценок 1-3 за период нет.</p>
-        {{ end }}
-      </section>
-
       <section class="analytics-card">
         <h2>Подробные отзывы</h2>
-        {{ range .Report.DetailedReviewsByDate }}
+        {{ range .DetailedReviewsByDate }}
           <details class="analytics-details">
             <summary>
               <span>{{ .BusinessDateDisplay }}</span>
@@ -128,7 +115,7 @@
               <div class="analytics-reviews">
                 {{ range .Reviews }}
                   <article class="analytics-review">
-                    <div><strong>{{ .Rating }}★</strong><span>{{ mealRu .MealType }}</span></div>
+                    <div><strong>{{ .Rating }}★</strong><span>{{ shiftMealRu .MealType $.SelectedShift }}</span></div>
                     <p>{{ if .Review }}{{ .Review }}{{ else }}Без текстового отзыва{{ end }}</p>
                   </article>
                 {{ end }}

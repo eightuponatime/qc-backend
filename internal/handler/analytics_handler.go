@@ -3,11 +3,13 @@ package handler
 import (
 	"html/template"
 	"net/http"
+	"net/url"
 	"qc/config"
 	"qc/internal/domain"
 	"qc/internal/dto"
 	"qc/internal/repository"
 	"qc/internal/service"
+	"sort"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -27,14 +29,29 @@ type analyticsPeriodView struct {
 	PeriodStart string
 	PeriodEnd   string
 	Display     string
+	URL         string
 	IsSelected  bool
 }
 
 type analyticsPageData struct {
-	Title        string
-	AnalyticsURL string
-	Periods      []analyticsPeriodView
-	Report       *dto.ReportAnalyticsSummaryDto
+	Title                  string
+	AnalyticsURL           string
+	Periods                []analyticsPeriodView
+	ShiftTabs              []analyticsShiftTabView
+	SelectedShift          string
+	SelectedShiftLabel     string
+	SelectedShiftSummary   dto.ReportShiftSummaryDto
+	AttentionRequiredItems []dto.ReportReviewDto
+	DetailedReviewsByDate  []dto.ReportDateReviewsDto
+	Report                 *dto.ReportAnalyticsSummaryDto
+}
+
+type analyticsShiftTabView struct {
+	ShiftType    string
+	Label        string
+	URL          string
+	TotalRatings int
+	IsSelected   bool
 }
 
 type analyticsLoginPageData struct {
@@ -100,10 +117,16 @@ func (h *AnalyticsHandler) AnalyticsPage(w http.ResponseWriter, r *http.Request)
 	}
 
 	data := analyticsPageData{
-		Title:        "Аналитика качества питания",
-		AnalyticsURL: h.cfg.AnalyticsURL,
-		Periods:      buildAnalyticsPeriods(sentReports, report.PeriodStart, report.PeriodEnd),
-		Report:       report,
+		Title:                  "Аналитика качества питания",
+		AnalyticsURL:           h.cfg.AnalyticsURL,
+		Periods:                buildAnalyticsPeriods(sentReports, report.PeriodStart, report.PeriodEnd, r.URL.Query().Get("shift")),
+		ShiftTabs:              buildAnalyticsShiftTabs(report.Summary.ShiftSummaries, report.PeriodStart, report.PeriodEnd, r.URL.Query().Get("shift")),
+		SelectedShift:          selectedAnalyticsShift(r, report.Summary.ShiftSummaries),
+		SelectedShiftLabel:     analyticsShiftLabel(selectedAnalyticsShift(r, report.Summary.ShiftSummaries)),
+		SelectedShiftSummary:   selectShiftSummary(report.Summary.ShiftSummaries, selectedAnalyticsShift(r, report.Summary.ShiftSummaries)),
+		AttentionRequiredItems: filterReviewsByShift(report.AttentionRequiredItems, selectedAnalyticsShift(r, report.Summary.ShiftSummaries)),
+		DetailedReviewsByDate:  filterDetailedReviewsByShift(report.DetailedReviewsByDate, selectedAnalyticsShift(r, report.Summary.ShiftSummaries)),
+		Report:                 report,
 	}
 
 	if err := h.tmpl.ExecuteTemplate(w, "analytics.html", data); err != nil {
@@ -199,20 +222,155 @@ func buildAnalyticsPeriods(
 	reports []domain.SentReportModel,
 	selectedStart string,
 	selectedEnd string,
+	selectedShift string,
 ) []analyticsPeriodView {
 	periods := make([]analyticsPeriodView, 0, len(reports))
 	for _, report := range reports {
 		periodStart := report.PeriodStart.Format("2006-01-02")
 		periodEnd := report.PeriodEnd.Format("2006-01-02")
+		link := buildAnalyticsLink(periodStart, periodEnd, selectedShift)
 		periods = append(periods, analyticsPeriodView{
 			PeriodStart: periodStart,
 			PeriodEnd:   periodEnd,
 			Display:     formatShortPeriod(report.PeriodStart, report.PeriodEnd),
 			IsSelected:  periodStart == selectedStart && periodEnd == selectedEnd,
+			URL:         link,
 		})
 	}
 
 	return periods
+}
+
+func selectedAnalyticsShift(r *http.Request, summaries []dto.ReportShiftSummaryDto) string {
+	selected := r.URL.Query().Get("shift")
+	if selected == "day" || selected == "night" {
+		return selected
+	}
+
+	for _, summary := range summaries {
+		if summary.ShiftType == "day" || summary.ShiftType == "night" {
+			return summary.ShiftType
+		}
+	}
+
+	return "day"
+}
+
+func selectShiftSummary(summaries []dto.ReportShiftSummaryDto, shiftType string) dto.ReportShiftSummaryDto {
+	for _, summary := range summaries {
+		if summary.ShiftType == shiftType {
+			return summary
+		}
+	}
+
+	return dto.ReportShiftSummaryDto{
+		ShiftType:        shiftType,
+		WeekdayStats:     []dto.ReportWeekdayStatsDto{},
+		MealStats:        []dto.ReportMealStatsDto{},
+		TotalRatings:     0,
+		TextReviewsCount: 0,
+	}
+}
+
+func buildAnalyticsShiftTabs(
+	summaries []dto.ReportShiftSummaryDto,
+	periodStart string,
+	periodEnd string,
+	selectedShift string,
+) []analyticsShiftTabView {
+	tabs := make([]analyticsShiftTabView, 0, 2)
+	order := []string{"day", "night"}
+
+	for _, shiftType := range order {
+		summary := selectShiftSummary(summaries, shiftType)
+		tabs = append(tabs, analyticsShiftTabView{
+			ShiftType:    shiftType,
+			Label:        analyticsShiftLabel(shiftType),
+			TotalRatings: summary.TotalRatings,
+			IsSelected:   shiftType == normalizeShiftType(selectedShift),
+			URL:          buildAnalyticsLink(periodStart, periodEnd, shiftType),
+		})
+	}
+
+	return tabs
+}
+
+func analyticsShiftLabel(shiftType string) string {
+	if shiftType == "night" {
+		return "Ночная смена"
+	}
+	return "Дневная смена"
+}
+
+func normalizeShiftType(shiftType string) string {
+	if shiftType == "night" {
+		return "night"
+	}
+	return "day"
+}
+
+func buildAnalyticsLink(periodStart string, periodEnd string, shiftType string) string {
+	values := url.Values{}
+	if periodStart != "" {
+		values.Set("period_start", periodStart)
+	}
+	if periodEnd != "" {
+		values.Set("period_end", periodEnd)
+	}
+	if normalized := normalizeShiftType(shiftType); normalized != "" {
+		values.Set("shift", normalized)
+	}
+
+	encoded := values.Encode()
+	if encoded == "" {
+		return "/analytics"
+	}
+	return "/analytics?" + encoded
+}
+
+func filterReviewsByShift(reviews []dto.ReportReviewDto, shiftType string) []dto.ReportReviewDto {
+	filtered := make([]dto.ReportReviewDto, 0, len(reviews))
+	for _, review := range reviews {
+		if review.ShiftType == normalizeShiftType(shiftType) {
+			filtered = append(filtered, review)
+		}
+	}
+	return filtered
+}
+
+func filterDetailedReviewsByShift(items []dto.ReportDateReviewsDto, shiftType string) []dto.ReportDateReviewsDto {
+	filtered := make([]dto.ReportDateReviewsDto, 0, len(items))
+	for _, item := range items {
+		reviews := filterReviewsByShift(item.Reviews, shiftType)
+		sort.SliceStable(reviews, func(i, j int) bool {
+			if reviews[i].Rating != reviews[j].Rating {
+				return reviews[i].Rating < reviews[j].Rating
+			}
+			return reviews[i].MealType < reviews[j].MealType
+		})
+
+		positiveCount := 0
+		lowCount := 0
+		for _, review := range reviews {
+			if review.Rating >= 4 {
+				positiveCount++
+			}
+			if review.Rating <= 3 {
+				lowCount++
+			}
+		}
+
+		filtered = append(filtered, dto.ReportDateReviewsDto{
+			BusinessDate:         item.BusinessDate,
+			BusinessDateDisplay:  item.BusinessDateDisplay,
+			TotalReviews:         len(reviews),
+			PositiveReviewsCount: positiveCount,
+			LowReviewsCount:      lowCount,
+			Reviews:              reviews,
+		})
+	}
+
+	return filtered
 }
 
 func formatShortPeriod(periodStart, periodEnd time.Time) string {
