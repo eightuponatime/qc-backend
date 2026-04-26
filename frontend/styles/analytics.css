@@ -120,6 +120,30 @@
   display: none;
 }
 
+.analytics-period-form {
+  margin-top: 14px;
+}
+
+.analytics-period-form__label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 900;
+  color: #102a43;
+}
+
+.analytics-period-select {
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid #dbeafe;
+  border-radius: 18px;
+  background: #f8fbff;
+  color: #102a43;
+  font: inherit;
+  font-weight: 800;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
 .analytics-periods {
   display: grid;
   gap: 10px;

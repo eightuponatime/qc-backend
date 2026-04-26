@@ -34,23 +34,28 @@
     <main class="analytics-content">
       <section class="analytics-mobile-periods analytics-card">
         <p class="analytics-kicker">Периоды</p>
-        <details class="analytics-period-picker">
-          <summary>
-            <span>Архив вахт</span>
-            <strong>{{ .Report.Summary.PeriodShortDisplay }}</strong>
-          </summary>
-          {{ if .Periods }}
-            <nav class="analytics-periods analytics-periods--mobile" aria-label="Периоды отчетов">
+        {{ if .Periods }}
+          <form method="get" action="/analytics" class="analytics-period-form">
+            <input type="hidden" name="shift" value="{{ .SelectedShift }}">
+            <label class="analytics-period-form__label" for="analytics-period-select">Архив вахт</label>
+            <select
+              id="analytics-period-select"
+              name="period_range"
+              class="analytics-period-select"
+              onchange="if (this.value) { const [start, end] = this.value.split('|'); this.form.period_start.value = start; this.form.period_end.value = end; this.form.submit(); }"
+            >
               {{ range .Periods }}
-                <a class="{{ if .IsSelected }}is-active{{ end }}" href="{{ .URL }}">
+                <option value="{{ .PeriodStart }}|{{ .PeriodEnd }}" {{ if .IsSelected }}selected{{ end }}>
                   {{ .Display }}
-                </a>
+                </option>
               {{ end }}
-            </nav>
-          {{ else }}
-            <p class="analytics-muted">Отправленных периодов пока нет, показана текущая сводка.</p>
-          {{ end }}
-        </details>
+            </select>
+            <input type="hidden" name="period_start" value="{{ .Report.PeriodStart }}">
+            <input type="hidden" name="period_end" value="{{ .Report.PeriodEnd }}">
+          </form>
+        {{ else }}
+          <p class="analytics-muted">Отправленных периодов пока нет, показана текущая сводка.</p>
+        {{ end }}
       </section>
 
       <section class="analytics-hero">
