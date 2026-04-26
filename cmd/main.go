@@ -62,7 +62,7 @@ func main() {
 
 	// handler
 	voteHandler := handler.NewVoteHandler(voteService, tmpl, cfg)
-	reportHandler := handler.NewReportHander(reportService)
+	reportHandler := handler.NewReportHander(reportService, emailService)
 	analyticsHandler := handler.NewAnalyticsHandler(
 		analyticsAccessService,
 		reportService,

@@ -55,31 +55,18 @@ func (s *ReportScheduler) runTick(ctx context.Context) {
 		return
 	}
 
-	shiftStart, err := time.ParseInLocation("2006-01-02", s.cfg.ShiftStartDate, location)
-	if err != nil {
-		slog.Error("report scheduler shift start parse failed", slog.Any("error", err))
+	currentTime := s.now().In(location)
+	currentDate := normalizeBusinessDate(currentTime, location)
+
+	if currentDate.Day() != 16 {
+		return
+	}
+	if currentTime.Hour() < s.cfg.ReportSendHour {
 		return
 	}
 
-	currentDate := normalizeBusinessDate(s.now(), location)
-	currentPeriodStart := shiftStart
-
-	if !currentDate.Before(shiftStart) {
-		daysSinceStart := int(currentDate.Sub(shiftStart).Hours() / 24)
-		periodIndex := daysSinceStart / 15
-		currentPeriodStart = shiftStart.AddDate(0, 0, periodIndex*15)
-	}
-
-	if !currentDate.Equal(currentPeriodStart) {
-		return
-	}
-
-	if !currentPeriodStart.After(shiftStart) {
-		return
-	}
-
-	previousPeriodStart := currentPeriodStart.AddDate(0, 0, -15)
-	previousPeriodEnd := currentPeriodStart.AddDate(0, 0, -1)
+	previousPeriodStart := time.Date(currentDate.Year(), currentDate.Month(), 1, 0, 0, 0, 0, location)
+	previousPeriodEnd := time.Date(currentDate.Year(), currentDate.Month(), 15, 0, 0, 0, 0, location)
 
 	alreadySent, err := s.sentReportRepo.ExistsByPeriod(ctx, previousPeriodStart, previousPeriodEnd)
 	if err != nil {
