@@ -32,19 +32,46 @@
     </aside>
 
     <main class="analytics-content">
+      <section class="analytics-mobile-periods analytics-card">
+        <p class="analytics-kicker">Периоды</p>
+        <details class="analytics-period-picker">
+          <summary>
+            <span>Архив вахт</span>
+            <strong>{{ .Report.Summary.PeriodShortDisplay }}</strong>
+          </summary>
+          {{ if .Periods }}
+            <nav class="analytics-periods analytics-periods--mobile" aria-label="Периоды отчетов">
+              {{ range .Periods }}
+                <a class="{{ if .IsSelected }}is-active{{ end }}" href="{{ .URL }}">
+                  {{ .Display }}
+                </a>
+              {{ end }}
+            </nav>
+          {{ else }}
+            <p class="analytics-muted">Отправленных периодов пока нет, показана текущая сводка.</p>
+          {{ end }}
+        </details>
+      </section>
+
       <section class="analytics-hero">
         <p class="analytics-kicker">Контроль качества питания</p>
         <h1>{{ .Report.Summary.PeriodStartDisplay }} - {{ .Report.Summary.PeriodEndDisplay }}</h1>
         <p>{{ .SelectedShiftLabel }}</p>
       </section>
 
-      <section class="analytics-tabs" aria-label="Смены">
-        {{ range .ShiftTabs }}
-          <a class="analytics-tab {{ if .IsSelected }}is-active{{ end }}" href="{{ .URL }}">
-            <span>{{ .Label }}</span>
-            <strong>{{ .TotalRatings }} оценок</strong>
-          </a>
-        {{ end }}
+      <section class="analytics-card analytics-card--filter">
+        <div class="analytics-filter-head">
+          <p class="analytics-kicker">Фильтр</p>
+          <h2>Смена</h2>
+        </div>
+        <div class="analytics-tabs" aria-label="Смены">
+          {{ range .ShiftTabs }}
+            <a class="analytics-tab {{ if .IsSelected }}is-active{{ end }}" href="{{ .URL }}">
+              <span>{{ .Label }}</span>
+              <strong>{{ .TotalRatings }} оценок</strong>
+            </a>
+          {{ end }}
+        </div>
       </section>
 
       <section class="analytics-grid analytics-grid--summary">

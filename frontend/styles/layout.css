@@ -85,3 +85,29 @@
   color: white;
   background: var(--accent-dark);
 }
+
+@media (max-width: 640px) {
+  .lang-switcher {
+    margin: 0 auto 12px;
+  }
+
+  .shift-switcher {
+    gap: 12px;
+    padding: 12px 14px;
+    margin-bottom: 22px;
+  }
+
+  .shift-switcher__label {
+    font-size: 15px;
+  }
+
+  .shift-switcher__options {
+    gap: 6px;
+  }
+
+  .shift-switcher__option,
+  .shift-switcher__locked {
+    padding: 9px 12px;
+    font-size: 14px;
+  }
+}

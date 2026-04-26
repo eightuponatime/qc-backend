@@ -116,6 +116,10 @@
   backdrop-filter: blur(14px);
 }
 
+.analytics-mobile-periods {
+  display: none;
+}
+
 .analytics-periods {
   display: grid;
   gap: 10px;
@@ -148,15 +152,64 @@
   padding: 28px;
 }
 
+.analytics-period-picker {
+  margin-top: 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 18px;
+  background: #f8fbff;
+  overflow: hidden;
+}
+
+.analytics-period-picker summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  cursor: pointer;
+  font-weight: 900;
+  list-style: none;
+}
+
+.analytics-period-picker summary::-webkit-details-marker {
+  display: none;
+}
+
+.analytics-period-picker summary strong {
+  color: #486581;
+  font-size: 14px;
+}
+
+.analytics-periods--mobile {
+  padding: 0 16px 16px;
+}
+
 .analytics-tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
+.analytics-card--filter {
+  padding-top: 20px;
+}
+
+.analytics-filter-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.analytics-filter-head .analytics-kicker {
+  margin-bottom: 6px;
+}
+
 .analytics-tab {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   padding: 16px 18px;
@@ -175,6 +228,7 @@
 
 .analytics-tab span {
   font-weight: 900;
+  font-size: 18px;
 }
 
 .analytics-tab strong {
@@ -432,8 +486,7 @@
   }
 
   .analytics-sidebar {
-    position: static;
-    height: auto;
+    display: none;
   }
 
   .analytics-stars,
@@ -443,5 +496,66 @@
 
   .analytics-content {
     padding: 18px;
+  }
+
+  .analytics-mobile-periods {
+    display: block;
+  }
+
+  .analytics-hero {
+    padding: 24px;
+  }
+
+  .analytics-hero h1 {
+    font-size: 28px;
+    line-height: 1.2;
+  }
+
+  .analytics-tab {
+    border-radius: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .analytics-page {
+    background:
+      radial-gradient(circle at top left, rgba(125, 211, 252, 0.22), transparent 22rem),
+      linear-gradient(135deg, #f8fafc 0%, #eef6f2 52%, #f8f3e8 100%);
+  }
+
+  .analytics-content {
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .analytics-card,
+  .analytics-hero {
+    border-radius: 22px;
+  }
+
+  .analytics-card {
+    padding: 18px;
+  }
+
+  .analytics-filter-head {
+    display: block;
+    margin-bottom: 12px;
+  }
+
+  .analytics-filter-head h2 {
+    margin-top: 2px;
+  }
+
+  .analytics-tab {
+    padding: 14px 16px;
+    gap: 6px;
+  }
+
+  .analytics-tab span {
+    font-size: 17px;
+  }
+
+  .analytics-tab strong {
+    font-size: 13px;
   }
 }

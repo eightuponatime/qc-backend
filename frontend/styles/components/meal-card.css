@@ -318,3 +318,63 @@
   border-radius: 6px;
   cursor: pointer;
 }
+
+@media (max-width: 640px) {
+  .meal-card {
+    margin-top: 12px;
+  }
+
+  .meal-card__summary {
+    padding: 14px;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .meal-card__summary-right {
+    gap: 10px;
+    font-size: 13px;
+  }
+
+  .meal-card__title {
+    font-size: 18px;
+  }
+
+  .meal-card__status {
+    font-size: 13px;
+  }
+
+  .meal-card__stars {
+    font-size: 16px;
+  }
+
+  .meal-card__content {
+    padding: 14px;
+  }
+
+  .meal-card__actions {
+    flex-wrap: wrap;
+  }
+
+  .meal-card__button {
+    width: 100%;
+    min-height: 44px;
+    font-weight: 700;
+  }
+
+  .meal-card__loading {
+    width: 100%;
+  }
+
+  .meal-card__textarea {
+    min-height: 110px;
+    font-size: 16px;
+  }
+
+  .star-rating {
+    gap: 2px;
+  }
+
+  .star-rating label {
+    font-size: 32px;
+  }
+}

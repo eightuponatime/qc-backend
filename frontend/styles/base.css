@@ -38,7 +38,8 @@ html {
 }
 
 body {
-  margin: 24px;
+  margin: 0;
+  padding: 20px;
   font-family: Arial, sans-serif;
   line-height: 1.4;
   background: var(--bg-page);
@@ -59,4 +60,14 @@ p {
 .htmx-request .htmx-indicator,
 .htmx-request.htmx-indicator {
   display: inline;
+}
+
+@media (max-width: 640px) {
+  html {
+    font-size: 16px;
+  }
+
+  body {
+    padding: 14px;
+  }
 }
