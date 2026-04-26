@@ -87,7 +87,7 @@ func (v *VoteHandler) GetTodayVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vote, err := v.voteService.GetTodayVote(r.Context(), deviceId)
+	vote, err := v.voteService.GetTodayVote(r.Context(), deviceId, requestedShiftType(r.URL.Query().Get("shift_type")))
 	if err != nil {
 		slog.Error("get today vote failed", slog.String("device_id", deviceId), slog.Any("error", err))
 		http.Error(w, `{"error":"failed to get vote"}`, http.StatusInternalServerError)
@@ -104,14 +104,17 @@ func (v *VoteHandler) GetTodayVote(w http.ResponseWriter, r *http.Request) {
 
 type VoteUIData struct {
 	DeviceId   string
+	ShiftType  string
 	PhoneModel string
 	Browser    string
 
 	Vote *dto.VoteResponseDto
 
-	SuccessMessage string
-	ErrorMessage   string
-	ActiveMeal     string
+	SuccessMessage      string
+	ErrorMessage        string
+	ActiveMeal          string
+	VotingClosed        bool
+	VotingClosedMessage string
 
 	AccessRestricted  bool
 	AccessReason      string
@@ -144,7 +147,8 @@ func (v *VoteHandler) GetVoteUIFragment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	vote, err := v.voteService.GetTodayVote(r.Context(), deviceId)
+	requestedShiftType := requestedShiftType(r.URL.Query().Get("shift_type"))
+	vote, err := v.voteService.GetTodayVote(r.Context(), deviceId, requestedShiftType)
 	if err != nil {
 		slog.Error("vote ui lookup failed", slog.String("device_id", deviceId), slog.Any("error", err))
 
@@ -158,6 +162,7 @@ func (v *VoteHandler) GetVoteUIFragment(w http.ResponseWriter, r *http.Request) 
 
 	data := VoteUIData{
 		DeviceId:        deviceId,
+		ShiftType:       detectShiftType(vote, requestedShiftType),
 		PhoneModel:      r.URL.Query().Get("phone_model"),
 		Browser:         r.URL.Query().Get("browser"),
 		Vote:            vote,
@@ -168,6 +173,7 @@ func (v *VoteHandler) GetVoteUIFragment(w http.ResponseWriter, r *http.Request) 
 		PrefillReview:   r.URL.Query().Get("review"),
 		ActiveMeal:      r.URL.Query().Get("meal_type"),
 	}
+	data.VotingClosed, data.VotingClosedMessage = v.getVotingClosedState(data.ShiftType, translations)
 
 	v.renderVoteUI(w, data, http.StatusOK)
 }
@@ -229,20 +235,22 @@ func (v *VoteHandler) SubmitVoteFragment(w http.ResponseWriter, r *http.Request)
 			"vote fragment save failed",
 			slog.String("code", code),
 			slog.String("device_id", req.DeviceId),
+			slog.String("shift_type", req.ShiftType),
 			slog.String("meal_type", firstMealType(req)),
 			slog.String("external_ip", externalIp),
 			slog.Any("error", err),
 		)
 
-		v.renderErrorUI(
-			w,
-			r,
-			translateError(translations, code),
-		)
+		if code == "voting_closed" {
+			v.renderVotingClosedUI(w, r, req.ShiftType)
+			return
+		}
+
+		v.renderErrorUI(w, r, translateError(translations, code))
 		return
 	}
 
-	vote, err := v.voteService.GetTodayVote(r.Context(), req.DeviceId)
+	vote, err := v.voteService.GetTodayVote(r.Context(), req.DeviceId, req.ShiftType)
 	if err != nil {
 		slog.Error("vote fragment reload failed", slog.String("device_id", req.DeviceId), slog.Any("error", err))
 
@@ -261,6 +269,7 @@ func (v *VoteHandler) SubmitVoteFragment(w http.ResponseWriter, r *http.Request)
 		"vote submitted",
 		slog.String("channel", "fragment"),
 		slog.String("device_id", req.DeviceId),
+		slog.String("shift_type", req.ShiftType),
 		slog.String("meal_type", activeMeal),
 		slog.String("external_ip", externalIp),
 		slog.String("phone_model", req.PhoneModel),
@@ -269,6 +278,7 @@ func (v *VoteHandler) SubmitVoteFragment(w http.ResponseWriter, r *http.Request)
 
 	v.renderVoteUI(w, VoteUIData{
 		DeviceId:       req.DeviceId,
+		ShiftType:      req.ShiftType,
 		PhoneModel:     req.PhoneModel,
 		Browser:        req.Browser,
 		Vote:           vote,
@@ -307,9 +317,11 @@ func (v *VoteHandler) renderErrorUI(w http.ResponseWriter, r *http.Request, mess
 	activeMeal := r.FormValue("meal_type")
 	translations := v.loadTranslations(r)
 	lang := i18n.DetectLanguage(r)
+	shiftType := requestedShiftType(r.FormValue("shift_type"))
 
 	data := VoteUIData{
 		DeviceId:     r.FormValue("device_id"),
+		ShiftType:    shiftType,
 		PhoneModel:   r.FormValue("phone_model"),
 		Browser:      r.FormValue("browser"),
 		ErrorMessage: message,
@@ -317,6 +329,7 @@ func (v *VoteHandler) renderErrorUI(w http.ResponseWriter, r *http.Request, mess
 		T:            translations,
 		Lang:         lang,
 	}
+	data.VotingClosed, data.VotingClosedMessage = v.getVotingClosedState(shiftType, translations)
 
 	v.renderVoteUI(w, data, http.StatusOK)
 }
@@ -328,6 +341,7 @@ func (v *VoteHandler) renderRestrictedUI(w http.ResponseWriter, r *http.Request,
 
 	data := VoteUIData{
 		DeviceId:          r.FormValue("device_id"),
+		ShiftType:         r.FormValue("shift_type"),
 		PhoneModel:        r.FormValue("phone_model"),
 		Browser:           r.FormValue("browser"),
 		ActiveMeal:        activeMeal,
@@ -339,6 +353,27 @@ func (v *VoteHandler) renderRestrictedUI(w http.ResponseWriter, r *http.Request,
 		PrefillReview:     r.FormValue("review"),
 		T:                 translations,
 		Lang:              lang,
+	}
+
+	v.renderVoteUI(w, data, http.StatusOK)
+}
+
+func (v *VoteHandler) renderVotingClosedUI(w http.ResponseWriter, r *http.Request, shiftType string) {
+	translations := v.loadTranslations(r)
+	lang := i18n.DetectLanguage(r)
+	normalizedShiftType := requestedShiftType(shiftType)
+	_, message := v.getVotingClosedState(normalizedShiftType, translations)
+
+	data := VoteUIData{
+		DeviceId:            r.FormValue("device_id"),
+		ShiftType:           normalizedShiftType,
+		PhoneModel:          r.FormValue("phone_model"),
+		Browser:             r.FormValue("browser"),
+		ActiveMeal:          r.FormValue("meal_type"),
+		VotingClosed:        true,
+		VotingClosedMessage: message,
+		T:                   translations,
+		Lang:                lang,
 	}
 
 	v.renderVoteUI(w, data, http.StatusOK)
@@ -366,6 +401,7 @@ func buildVoteRequestFromForm(r *http.Request) (dto.VoteRequestDto, error) {
 
 	return dto.VoteRequestDto{
 		DeviceId:   deviceId,
+		ShiftType:  r.FormValue("shift_type"),
 		PhoneModel: r.FormValue("phone_model"),
 		Browser:    r.FormValue("browser"),
 		Items:      []dto.VoteMealItemDto{item},
@@ -456,6 +492,29 @@ func getMealAvailabilities(now time.Time, timezone string) (MealAvailability, Me
 	return breakfast, lunch, dinner, localNow, nil
 }
 
+func (v *VoteHandler) getVotingClosedState(shiftType string, translations i18n.Translations) (bool, string) {
+	location, err := time.LoadLocation(v.cfg.BusinessTimezone)
+	if err != nil {
+		return false, ""
+	}
+
+	SHIFT_DATE := 15
+	BORDER_DATE := 16
+
+	now := time.Now().In(location)
+	normalizedShiftType := requestedShiftType(shiftType)
+
+	if now.Day() >= 1 && now.Day() <= SHIFT_DATE {
+		return false, ""
+	}
+
+	if normalizedShiftType == "night" && now.Day() == BORDER_DATE && now.Hour() < v.cfg.NightShiftVoteCutoffHour {
+		return false, ""
+	}
+
+	return true, buildVotingClosedMessage(now, i18nLanguageFromTranslations(translations))
+}
+
 func extractIp(r *http.Request) string {
 	if ip := r.Header.Get("X-Real-IP"); ip != "" {
 		return ip
@@ -529,8 +588,12 @@ func serviceErrorCode(err error) string {
 	msg := err.Error()
 
 	switch {
+	case strings.Contains(msg, "invalid shift type"):
+		return "invalid_form_data"
 	case strings.Contains(msg, "invalid meal type"):
 		return "invalid_meal_type"
+	case strings.Contains(msg, "voting is closed"):
+		return "voting_closed"
 	case strings.Contains(msg, "not available yet"):
 		return "meal_not_available_yet"
 	case strings.Contains(msg, "load business timezone"):
@@ -547,5 +610,120 @@ func serviceErrorCode(err error) string {
 		return "vote_items_lookup_failed"
 	default:
 		return "vote_save_failed"
+	}
+}
+
+func detectShiftType(vote *dto.VoteResponseDto, requestedShiftType string) string {
+	if vote != nil && vote.ShiftType != "" {
+		return vote.ShiftType
+	}
+	if requestedShiftType == "night" {
+		return "night"
+	}
+	return "day"
+}
+
+func requestedShiftType(shiftType string) string {
+	if shiftType == "night" {
+		return "night"
+	}
+	return "day"
+}
+
+func buildVotingClosedMessage(now time.Time, lang string) string {
+	switch lang {
+	case "en":
+		return fmt.Sprintf(
+			"Voting for the period from 1 to 16 %s is already closed.",
+			englishMonthName(now.Month()),
+		)
+	case "kk":
+		return fmt.Sprintf(
+			"%s айының 1-інен 16-сына дейінгі кезең бойынша дауыс беру жабылды.",
+			kazakhMonthName(now.Month()),
+		)
+	default:
+		return fmt.Sprintf(
+			"Голосование за период с 1 по 16 %s уже закрыто.",
+			russianMonthGenitive(now.Month()),
+		)
+	}
+}
+
+func i18nLanguageFromTranslations(translations i18n.Translations) string {
+	title := translations["title"]
+	switch title {
+	case "Quality Control":
+		return "en"
+	case "Сапаны бақылау":
+		return "kk"
+	default:
+		return "ru"
+	}
+}
+
+func russianMonthGenitive(month time.Month) string {
+	switch month {
+	case time.January:
+		return "января"
+	case time.February:
+		return "февраля"
+	case time.March:
+		return "марта"
+	case time.April:
+		return "апреля"
+	case time.May:
+		return "мая"
+	case time.June:
+		return "июня"
+	case time.July:
+		return "июля"
+	case time.August:
+		return "августа"
+	case time.September:
+		return "сентября"
+	case time.October:
+		return "октября"
+	case time.November:
+		return "ноября"
+	case time.December:
+		return "декабря"
+	default:
+		return ""
+	}
+}
+
+func englishMonthName(month time.Month) string {
+	return month.String()
+}
+
+func kazakhMonthName(month time.Month) string {
+	switch month {
+	case time.January:
+		return "қаңтар"
+	case time.February:
+		return "ақпан"
+	case time.March:
+		return "наурыз"
+	case time.April:
+		return "сәуір"
+	case time.May:
+		return "мамыр"
+	case time.June:
+		return "маусым"
+	case time.July:
+		return "шілде"
+	case time.August:
+		return "тамыз"
+	case time.September:
+		return "қыркүйек"
+	case time.October:
+		return "қазан"
+	case time.November:
+		return "қараша"
+	case time.December:
+		return "желтоқсан"
+	default:
+		return ""
 	}
 }

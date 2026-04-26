@@ -117,6 +117,10 @@ func (r *ReportService) CreateSummaryForPeriod(
 			{MealType: "lunch"},
 			{MealType: "dinner"},
 		},
+		ShiftSummaries: []dto.ReportShiftSummaryDto{
+			newShiftSummary("day"),
+			newShiftSummary("night"),
+		},
 		Insights: []string{},
 	}
 
@@ -140,6 +144,10 @@ func (r *ReportService) CreateSummaryForPeriod(
 	weekdayHighCounts := make(map[string]int)
 	weekdayTextReviews := make(map[string]int)
 	mealLowCounts := make(map[string]int)
+	shiftIndexByType := map[string]int{
+		"day":   0,
+		"night": 1,
+	}
 
 	for _, model := range *reportModels {
 		businessDate := model.BusinessDate.In(location)
@@ -161,8 +169,15 @@ func (r *ReportService) CreateSummaryForPeriod(
 			continue
 		}
 
+		shiftIdx, hasShift := shiftIndexByType[model.ShiftType]
+		if !hasShift {
+			continue
+		}
+
 		summary.TotalRatings++
 		incrementDistribution(&summary.RatingDistribution, *model.Rating)
+		summary.ShiftSummaries[shiftIdx].TotalRatings++
+		incrementDistribution(&summary.ShiftSummaries[shiftIdx].RatingDistribution, *model.Rating)
 
 		review := ""
 		if model.Review != nil {
@@ -171,6 +186,7 @@ func (r *ReportService) CreateSummaryForPeriod(
 		if review != "" {
 			summary.TextReviewsCount++
 			weekdayTextReviews[businessDate.Weekday().String()]++
+			summary.ShiftSummaries[shiftIdx].TextReviewsCount++
 		}
 
 		weekdayName := businessDate.Weekday().String()
@@ -178,20 +194,27 @@ func (r *ReportService) CreateSummaryForPeriod(
 			summary.WeekdayStats[idx].TotalRatings++
 			summary.WeekdayStats[idx].TextReviewsCount += boolToInt(review != "")
 			incrementDistribution(&summary.WeekdayStats[idx].RatingDistribution, *model.Rating)
+			summary.ShiftSummaries[shiftIdx].WeekdayStats[idx].TotalRatings++
+			summary.ShiftSummaries[shiftIdx].WeekdayStats[idx].TextReviewsCount += boolToInt(review != "")
+			incrementDistribution(&summary.ShiftSummaries[shiftIdx].WeekdayStats[idx].RatingDistribution, *model.Rating)
 
 			if mealIdx, ok := mealIndexByType[*model.MealType]; ok {
 				summary.WeekdayStats[idx].MealStats[mealIdx].TotalRatings++
+				summary.ShiftSummaries[shiftIdx].WeekdayStats[idx].MealStats[mealIdx].TotalRatings++
 				if *model.Rating <= 3 {
 					summary.WeekdayStats[idx].MealStats[mealIdx].LowRatingsCount++
+					summary.ShiftSummaries[shiftIdx].WeekdayStats[idx].MealStats[mealIdx].LowRatingsCount++
 				}
 			}
 		}
 
 		if idx, ok := mealIndexByType[*model.MealType]; ok {
 			summary.MealStats[idx].TotalRatings++
+			summary.ShiftSummaries[shiftIdx].MealStats[idx].TotalRatings++
 			if *model.Rating <= 3 {
 				summary.MealStats[idx].LowRatingsCount++
 				mealLowCounts[*model.MealType]++
+				summary.ShiftSummaries[shiftIdx].MealStats[idx].LowRatingsCount++
 			}
 		}
 
@@ -289,6 +312,7 @@ func (r *ReportService) CreateAnalyticsSummaryForPeriod(
 			BusinessDateDisplay: formatRussianDate(businessDate),
 			BusinessWeekday:     weekdayNominativeRussian(businessDate.Weekday().String()),
 			VoteID:              model.VoteID.String(),
+			ShiftType:           model.ShiftType,
 			MealType:            *model.MealType,
 			Rating:              *model.Rating,
 			Review:              review,
@@ -315,6 +339,26 @@ func (r *ReportService) CreateAnalyticsSummaryForPeriod(
 func newWeekdayStats(name string) dto.ReportWeekdayStatsDto {
 	return dto.ReportWeekdayStatsDto{
 		Weekday: name,
+		MealStats: []dto.ReportMealStatsDto{
+			{MealType: "breakfast"},
+			{MealType: "lunch"},
+			{MealType: "dinner"},
+		},
+	}
+}
+
+func newShiftSummary(shiftType string) dto.ReportShiftSummaryDto {
+	return dto.ReportShiftSummaryDto{
+		ShiftType: shiftType,
+		WeekdayStats: []dto.ReportWeekdayStatsDto{
+			newWeekdayStats("Monday"),
+			newWeekdayStats("Tuesday"),
+			newWeekdayStats("Wednesday"),
+			newWeekdayStats("Thursday"),
+			newWeekdayStats("Friday"),
+			newWeekdayStats("Saturday"),
+			newWeekdayStats("Sunday"),
+		},
 		MealStats: []dto.ReportMealStatsDto{
 			{MealType: "breakfast"},
 			{MealType: "lunch"},
@@ -454,21 +498,9 @@ func (r *ReportService) getCurrentPeriodBounds() (*time.Location, time.Time, tim
 		return nil, time.Time{}, time.Time{}, fmt.Errorf("load business timezone: %w", err)
 	}
 
-	shiftStart, err := time.ParseInLocation("2006-01-02", r.cfg.ShiftStartDate, location)
-	if err != nil {
-		return nil, time.Time{}, time.Time{}, fmt.Errorf("parse shift start date: %w", err)
-	}
-
 	nowBusinessDate := normalizeBusinessDate(time.Now(), location)
-
-	periodStart := shiftStart
-	if !nowBusinessDate.Before(shiftStart) {
-		daysSinceStart := int(nowBusinessDate.Sub(shiftStart).Hours() / 24)
-		periodIndex := daysSinceStart / 15
-		periodStart = shiftStart.AddDate(0, 0, periodIndex*15)
-	}
-
-	periodEnd := periodStart.AddDate(0, 0, 14)
+	periodStart := time.Date(nowBusinessDate.Year(), nowBusinessDate.Month(), 1, 0, 0, 0, 0, location)
+	periodEnd := time.Date(nowBusinessDate.Year(), nowBusinessDate.Month(), 15, 0, 0, 0, 0, location)
 	return location, periodStart, periodEnd, nil
 }
 

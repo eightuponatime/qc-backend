@@ -21,7 +21,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!container) return
 
   loadVoteUI().then(() => {
-    startMealCountdowns()
     initMealVoteForms()
   })
 })
@@ -46,88 +45,6 @@ function detectBrowser(userAgent) {
   if (userAgent.includes("Firefox")) return "Firefox"
   if (userAgent.includes("Safari")) return "Safari"
   return "Unknown"
-}
-
-let mealCountdownInterval = null
-
-function startMealCountdowns() {
-  if (mealCountdownInterval) {
-    clearInterval(mealCountdownInterval)
-    mealCountdownInterval = null
-  }
-
-  const container = document.getElementById("vote-ui-container")
-  if (!container) return
-
-  const cards = container.querySelectorAll("[data-minutes-until-open][data-server-now]")
-  if (!cards.length) return
-
-  let hasReloaded = false
-
-  const updateAllCountdowns = () => {
-    for (const card of cards) {
-      const minutesUntilOpen = Number(card.getAttribute("data-minutes-until-open"))
-      const serverNowIso = card.getAttribute("data-server-now")
-      const countdownEl = card.querySelector(".meal-card__countdown")
-      const statusEl = card.querySelector(".meal-card__status--countdown")
-
-      if (!countdownEl || Number.isNaN(minutesUntilOpen) || !serverNowIso) continue
-
-      const serverNow = new Date(serverNowIso)
-      const targetTime = new Date(serverNow.getTime() + minutesUntilOpen * 60 * 1000)
-      const now = new Date()
-      const diffMs = targetTime.getTime() - now.getTime()
-
-      if (diffMs <= 0) {
-        countdownEl.textContent = t("ui.available_now", "Уже доступно")
-
-        if (!hasReloaded) {
-          hasReloaded = true
-          clearInterval(mealCountdownInterval)
-          mealCountdownInterval = null
-
-          loadVoteUI().then(() => {
-            startMealCountdowns()
-          })
-        }
-
-        continue
-      }
-
-      const totalMinutes = Math.ceil(diffMs / 60000)
-      const hours = Math.floor(totalMinutes / 60)
-      const minutes = totalMinutes % 60
-
-      if (hours > 0) {
-        countdownEl.textContent = t(
-          "ui.countdown_hours_minutes",
-          "Осталось: {hours} ч {minutes} мин"
-        )
-          .replace("{hours}", String(hours))
-          .replace("{minutes}", String(minutes))
-      } else {
-        countdownEl.textContent = t(
-          "ui.countdown_minutes",
-          "Осталось: {minutes} мин"
-        ).replace("{minutes}", String(minutes))
-      }
-
-      if (totalMinutes <= 10) {
-        card.classList.add("meal-card--soon")
-        if (statusEl) {
-          statusEl.textContent = t("ui.opens_soon", "Скоро откроется")
-        }
-      } else {
-        card.classList.remove("meal-card--soon")
-        if (statusEl) {
-          statusEl.textContent = t("ui.not_available_yet", "Пока недоступно")
-        }
-      }
-    }
-  }
-
-  updateAllCountdowns()
-  mealCountdownInterval = setInterval(updateAllCountdowns, 60000)
 }
 
 document.body.addEventListener("htmx:sendError", () => {
@@ -158,7 +75,6 @@ document.body.addEventListener("htmx:responseError", (event) => {
 document.body.addEventListener("htmx:afterSwap", (event) => {
   if (event.target && event.target.id === "vote-ui-container") {
     hideGlobalError()
-    startMealCountdowns()
     initMealVoteForms()
   }
 })

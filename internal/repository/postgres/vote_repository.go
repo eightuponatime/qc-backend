@@ -25,6 +25,7 @@ func (r *VoteRepository) CreateVote(ctx context.Context, vote domain.VoteModel) 
 
 	params := map[string]any{
 		"device_id":     vote.DeviceId,
+		"shift_type":    vote.ShiftType,
 		"phone_model":   vote.PhoneModel,
 		"browser":       vote.Browser,
 		"external_ip":   vote.ExternalIP,
@@ -34,18 +35,20 @@ func (r *VoteRepository) CreateVote(ctx context.Context, vote domain.VoteModel) 
 	rows, err := sqlx.NamedQueryContext(ctx, db, `
 		INSERT INTO votes (
 			device_id,
+			shift_type,
 			phone_model,
 			browser,
 			external_ip,
 			business_date
 		) VALUES (
 			:device_id,
+			:shift_type,
 			:phone_model,
 			:browser,
 			:external_ip,
 			:business_date
 		)
-		RETURNING id, device_id, phone_model, browser, external_ip, business_date, created_at
+		RETURNING id, device_id, shift_type, phone_model, browser, external_ip, business_date, created_at
 	`, params)
 	if err != nil {
 		return nil, fmt.Errorf("create vote: %w", err)
@@ -75,6 +78,7 @@ func (r *VoteRepository) GetVoteByDay(
 		SELECT
 			id,
 			device_id,
+			shift_type,
 			phone_model,
 			browser,
 			external_ip,
@@ -95,14 +99,32 @@ func (r *VoteRepository) GetVoteByDay(
 	return &vote, nil
 }
 
+func (r *VoteRepository) UpdateVote(ctx context.Context, vote domain.VoteModel) error {
+	db := extractTransaction(ctx, r.db)
+
+	_, err := db.ExecContext(ctx, `
+		update votes
+		set shift_type = $1,
+		    phone_model = $2,
+		    browser = $3,
+		    external_ip = $4
+		where id = $5
+	`, vote.ShiftType, vote.PhoneModel, vote.Browser, vote.ExternalIP, vote.Id)
+	if err != nil {
+		return fmt.Errorf("update vote: %w", err)
+	}
+
+	return nil
+}
+
 func (r *VoteRepository) UpsertVoteItem(ctx context.Context, item domain.VoteItemModel) error {
 	db := extractTransaction(ctx, r.db)
 
 	params := map[string]any{
-		"vote_id":    item.VoteId,
-		"meal_type":  item.MealType,
-		"rating":     item.Rating,
-		"review":     item.Review,
+		"vote_id":   item.VoteId,
+		"meal_type": item.MealType,
+		"rating":    item.Rating,
+		"review":    item.Review,
 	}
 
 	_, err := sqlx.NamedExecContext(ctx, db, `

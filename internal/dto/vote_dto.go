@@ -8,6 +8,7 @@ type VoteMealItemDto struct {
 
 type VoteRequestDto struct {
 	DeviceId   string            `json:"device_id"`
+	ShiftType  string            `json:"shift_type"`
 	PhoneModel string            `json:"phone_model"`
 	Browser    string            `json:"browser"`
 	Latitude   *string           `json:"geo_latitude"`
@@ -22,5 +23,6 @@ type VoteMealItemResponseDto struct {
 }
 
 type VoteResponseDto struct {
-	Items []VoteMealItemResponseDto `json:"items"`
+	ShiftType string                    `json:"shift_type"`
+	Items     []VoteMealItemResponseDto `json:"items"`
 }

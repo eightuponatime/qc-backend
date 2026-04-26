@@ -2,85 +2,100 @@
   <div>
     <h2>{{ index .T "ui.vote_title" }}</h2>
 
-    {{ if .BreakfastAvailability.IsAvailable }}
-      {{ template "meal_form_block.html" (dict
-        "DeviceId" .DeviceId
-        "PhoneModel" .PhoneModel
-        "Browser" .Browser
-        "MealType" "breakfast"
-        "Item" (findMeal .Vote "breakfast")
-        "ActiveMeal" .ActiveMeal
-        "SuccessMessage" .SuccessMessage
-        "AccessRestricted" .AccessRestricted
-        "AccessReason" .AccessReason
-        "AccessDismissible" .AccessDismissible
-        "PrefillMealType" .PrefillMealType
-        "PrefillRating" .PrefillRating
-        "PrefillReview" .PrefillReview
-        "T" .T
-      ) }}
-    {{ else }}
-      {{ template "meal_unavailable_block.html" (dict
-        "MealType" "breakfast"
-        "OpensAt" .BreakfastAvailability.OpensAt
-        "MinutesUntilOpen" .BreakfastAvailability.MinutesUntilOpen
-        "ServerNowISO" .ServerNowISO
-        "T" .T
-      ) }}
+    {{ if .VotingClosed }}
+      <div class="ui-message ui-message--error vote-form__alert">
+        <p>{{ .VotingClosedMessage }}</p>
+      </div>
     {{ end }}
 
-    {{ if .LunchAvailability.IsAvailable }}
-      {{ template "meal_form_block.html" (dict
-        "DeviceId" .DeviceId
-        "PhoneModel" .PhoneModel
-        "Browser" .Browser
-        "MealType" "lunch"
-        "Item" (findMeal .Vote "lunch")
-        "ActiveMeal" .ActiveMeal
-        "SuccessMessage" .SuccessMessage
-        "AccessRestricted" .AccessRestricted
-        "AccessReason" .AccessReason
-        "AccessDismissible" .AccessDismissible
-        "PrefillMealType" .PrefillMealType
-        "PrefillRating" .PrefillRating
-        "PrefillReview" .PrefillReview
-        "T" .T
-      ) }}
-    {{ else }}
-      {{ template "meal_unavailable_block.html" (dict
-        "MealType" "lunch"
-        "OpensAt" .LunchAvailability.OpensAt
-        "MinutesUntilOpen" .LunchAvailability.MinutesUntilOpen
-        "ServerNowISO" .ServerNowISO
-        "T" .T
-      ) }}
-    {{ end }}
+    <div class="shift-switcher">
+      <span class="shift-switcher__label">{{ index .T "ui.shift_type" }}</span>
+      {{ if .Vote }}
+        <div class="shift-switcher__locked">
+          {{ if eq .ShiftType "night" }}{{ index .T "ui.shift_night" }}{{ else }}{{ index .T "ui.shift_day" }}{{ end }}
+        </div>
+      {{ else }}
+        <div class="shift-switcher__options">
+          <a
+            href="/fragments/vote-ui?device_id={{ .DeviceId }}&phone_model={{ .PhoneModel }}&browser={{ .Browser }}&shift_type=day"
+            hx-get="/fragments/vote-ui?device_id={{ .DeviceId }}&phone_model={{ .PhoneModel }}&browser={{ .Browser }}&shift_type=day"
+            hx-target="#vote-ui-container"
+            hx-swap="innerHTML"
+            class="{{ if eq .ShiftType "day" }}shift-switcher__option shift-switcher__option--active{{ else }}shift-switcher__option{{ end }}"
+          >
+            {{ index .T "ui.shift_day" }}
+          </a>
+          <a
+            href="/fragments/vote-ui?device_id={{ .DeviceId }}&phone_model={{ .PhoneModel }}&browser={{ .Browser }}&shift_type=night"
+            hx-get="/fragments/vote-ui?device_id={{ .DeviceId }}&phone_model={{ .PhoneModel }}&browser={{ .Browser }}&shift_type=night"
+            hx-target="#vote-ui-container"
+            hx-swap="innerHTML"
+            class="{{ if eq .ShiftType "night" }}shift-switcher__option shift-switcher__option--active{{ else }}shift-switcher__option{{ end }}"
+          >
+            {{ index .T "ui.shift_night" }}
+          </a>
+        </div>
+      {{ end }}
+    </div>
 
-    {{ if .DinnerAvailability.IsAvailable }}
-      {{ template "meal_form_block.html" (dict
-        "DeviceId" .DeviceId
-        "PhoneModel" .PhoneModel
-        "Browser" .Browser
-        "MealType" "dinner"
-        "Item" (findMeal .Vote "dinner")
-        "ActiveMeal" .ActiveMeal
-        "SuccessMessage" .SuccessMessage
-        "AccessRestricted" .AccessRestricted
-        "AccessReason" .AccessReason
-        "AccessDismissible" .AccessDismissible
-        "PrefillMealType" .PrefillMealType
-        "PrefillRating" .PrefillRating
-        "PrefillReview" .PrefillReview
-        "T" .T
-      ) }}
-    {{ else }}
-      {{ template "meal_unavailable_block.html" (dict
-        "MealType" "dinner"
-        "OpensAt" .DinnerAvailability.OpensAt
-        "MinutesUntilOpen" .DinnerAvailability.MinutesUntilOpen
-        "ServerNowISO" .ServerNowISO
-        "T" .T
-      ) }}
-    {{ end }}
+    {{ template "meal_form_block.html" (dict
+      "DeviceId" .DeviceId
+      "ShiftType" .ShiftType
+      "PhoneModel" .PhoneModel
+      "Browser" .Browser
+      "MealType" "breakfast"
+      "Item" (findMeal .Vote "breakfast")
+      "ActiveMeal" .ActiveMeal
+      "VotingClosed" .VotingClosed
+      "VotingClosedMessage" .VotingClosedMessage
+      "SuccessMessage" .SuccessMessage
+      "AccessRestricted" .AccessRestricted
+      "AccessReason" .AccessReason
+      "AccessDismissible" .AccessDismissible
+      "PrefillMealType" .PrefillMealType
+      "PrefillRating" .PrefillRating
+      "PrefillReview" .PrefillReview
+      "T" .T
+    ) }}
+
+    {{ template "meal_form_block.html" (dict
+      "DeviceId" .DeviceId
+      "ShiftType" .ShiftType
+      "PhoneModel" .PhoneModel
+      "Browser" .Browser
+      "MealType" "lunch"
+      "Item" (findMeal .Vote "lunch")
+      "ActiveMeal" .ActiveMeal
+      "VotingClosed" .VotingClosed
+      "VotingClosedMessage" .VotingClosedMessage
+      "SuccessMessage" .SuccessMessage
+      "AccessRestricted" .AccessRestricted
+      "AccessReason" .AccessReason
+      "AccessDismissible" .AccessDismissible
+      "PrefillMealType" .PrefillMealType
+      "PrefillRating" .PrefillRating
+      "PrefillReview" .PrefillReview
+      "T" .T
+    ) }}
+
+    {{ template "meal_form_block.html" (dict
+      "DeviceId" .DeviceId
+      "ShiftType" .ShiftType
+      "PhoneModel" .PhoneModel
+      "Browser" .Browser
+      "MealType" "dinner"
+      "Item" (findMeal .Vote "dinner")
+      "ActiveMeal" .ActiveMeal
+      "VotingClosed" .VotingClosed
+      "VotingClosedMessage" .VotingClosedMessage
+      "SuccessMessage" .SuccessMessage
+      "AccessRestricted" .AccessRestricted
+      "AccessReason" .AccessReason
+      "AccessDismissible" .AccessDismissible
+      "PrefillMealType" .PrefillMealType
+      "PrefillRating" .PrefillRating
+      "PrefillReview" .PrefillReview
+      "T" .T
+    ) }}
   </div>
 {{ end }}
