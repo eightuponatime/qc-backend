@@ -9,6 +9,7 @@ import (
 type VoteModel struct {
 	Id           uuid.UUID `db:"id"`
 	DeviceId     string    `db:"device_id"`
+	ShiftType    string    `db:"shift_type"`
 	PhoneModel   string    `db:"phone_model"`
 	Browser      string    `db:"browser"`
 	ExternalIP   string    `db:"external_ip"`

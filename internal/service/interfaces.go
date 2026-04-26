@@ -8,7 +8,7 @@ import (
 
 type VoteService interface {
 	CreateVote(ctx context.Context, req dto.VoteRequestDto, externalIp string) error
-	GetTodayVote(ctx context.Context, deviceId string) (*dto.VoteResponseDto, error)
+	GetTodayVote(ctx context.Context, deviceId string, shiftType string) (*dto.VoteResponseDto, error)
 }
 
 type ReportService interface {

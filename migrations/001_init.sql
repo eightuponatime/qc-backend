@@ -3,6 +3,7 @@ create extension if not exists "uuid-ossp";
 create table votes (
     id uuid primary key default uuid_generate_v4(),
     device_id text not null,
+    shift_type text not null check (shift_type in ('day', 'night')),
     phone_model text not null,
     browser text not null,
     external_ip text not null,

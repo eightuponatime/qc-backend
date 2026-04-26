@@ -34,9 +34,13 @@ func (s *VoteServiceImpl) CreateVote(ctx context.Context, req dto.VoteRequestDto
 	return s.txManager.WithTransaction(ctx, func(ctx context.Context) error {
 		now := time.Now()
 
-		businessDate, err := s.getBusinessDate(now)
+		if !isValidShiftType(req.ShiftType) {
+			return fmt.Errorf("invalid shift type: %s", req.ShiftType)
+		}
+
+		businessDate, err := s.resolveVotingBusinessDate(now, req.ShiftType)
 		if err != nil {
-			return fmt.Errorf("get business date: %w", err)
+			return err
 		}
 
 		vote, err := s.voteRepo.GetVoteByDay(ctx, req.DeviceId, businessDate)
@@ -47,6 +51,7 @@ func (s *VoteServiceImpl) CreateVote(ctx context.Context, req dto.VoteRequestDto
 
 			voteToCreate := domain.VoteModel{
 				DeviceId:     req.DeviceId,
+				ShiftType:    req.ShiftType,
 				PhoneModel:   req.PhoneModel,
 				Browser:      req.Browser,
 				ExternalIP:   externalIp,
@@ -57,15 +62,20 @@ func (s *VoteServiceImpl) CreateVote(ctx context.Context, req dto.VoteRequestDto
 			if err != nil {
 				return fmt.Errorf("create vote: %w", err)
 			}
+		} else {
+			vote.ShiftType = req.ShiftType
+			vote.PhoneModel = req.PhoneModel
+			vote.Browser = req.Browser
+			vote.ExternalIP = externalIp
+
+			if err := s.voteRepo.UpdateVote(ctx, *vote); err != nil {
+				return fmt.Errorf("update vote: %w", err)
+			}
 		}
 
 		for _, item := range req.Items {
 			if !isValidMealType(item.MealType) {
 				return fmt.Errorf("invalid meal type: %s", item.MealType)
-			}
-
-			if err := s.validateMealTime(now, item.MealType); err != nil {
-				return err
 			}
 
 			voteItem := domain.VoteItemModel{
@@ -80,15 +90,18 @@ func (s *VoteServiceImpl) CreateVote(ctx context.Context, req dto.VoteRequestDto
 			}
 		}
 
-
 		return nil
 	})
 }
 
-func (s *VoteServiceImpl) GetTodayVote(ctx context.Context, deviceId string) (*dto.VoteResponseDto, error) {
-	businessDate, err := s.getBusinessDate(time.Now())
+func (s *VoteServiceImpl) GetTodayVote(ctx context.Context, deviceId string, shiftType string) (*dto.VoteResponseDto, error) {
+	normalizedShiftType := normalizeShiftType(shiftType)
+	businessDate, err := s.resolveVotingBusinessDate(time.Now(), normalizedShiftType)
 	if err != nil {
-		return nil, fmt.Errorf("get business date: %w", err)
+		if err.Error() == "voting is closed" {
+			return nil, nil
+		}
+		return nil, err
 	}
 
 	vote, err := s.voteRepo.GetVoteByDay(ctx, deviceId, businessDate)
@@ -114,17 +127,42 @@ func (s *VoteServiceImpl) GetTodayVote(ctx context.Context, deviceId string) (*d
 	}
 
 	return &dto.VoteResponseDto{
-		Items: responseItems,
+		ShiftType: vote.ShiftType,
+		Items:     responseItems,
 	}, nil
 }
 
-func (s *VoteServiceImpl) getBusinessDate(now time.Time) (time.Time, error) {
+func (s *VoteServiceImpl) resolveVotingBusinessDate(now time.Time, shiftType string) (time.Time, error) {
 	location, err := time.LoadLocation(s.cfg.BusinessTimezone)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("load business timezone: %w", err)
 	}
 
 	localNow := now.In(location)
+	normalizedShiftType := normalizeShiftType(shiftType)
+
+	SHIFT_DATE := 15
+	BORDER_DATE := 16
+
+	if localNow.Day() < 1 || localNow.Day() > BORDER_DATE {
+		return time.Time{}, fmt.Errorf("voting is closed")
+	}
+
+	if normalizedShiftType == "night" && localNow.Day() == BORDER_DATE {
+		if localNow.Hour() < s.cfg.NightShiftVoteCutoffHour {
+			localNow = localNow.AddDate(0, 0, -1)
+		} else {
+			return time.Time{}, fmt.Errorf("voting is closed")
+		}
+	}
+
+	if normalizedShiftType == "day" && localNow.Day() > SHIFT_DATE {
+		return time.Time{}, fmt.Errorf("voting is closed")
+	}
+
+	if normalizedShiftType == "night" && localNow.Day() > SHIFT_DATE {
+		return time.Time{}, fmt.Errorf("voting is closed")
+	}
 
 	businessDate := time.Date(
 		localNow.Year(),
@@ -137,6 +175,13 @@ func (s *VoteServiceImpl) getBusinessDate(now time.Time) (time.Time, error) {
 	return businessDate, nil
 }
 
+func normalizeShiftType(shiftType string) string {
+	if shiftType == "night" {
+		return "night"
+	}
+	return "day"
+}
+
 func isValidMealType(mealType string) bool {
 	switch mealType {
 	case "breakfast", "lunch", "dinner":
@@ -146,30 +191,11 @@ func isValidMealType(mealType string) bool {
 	}
 }
 
-func (s *VoteServiceImpl) validateMealTime(now time.Time, mealType string) error {
-	location, err := time.LoadLocation(s.cfg.BusinessTimezone)
-	if err != nil {
-		return fmt.Errorf("load business timezone: %w", err)
-	}
-
-	localNow := now.In(location)
-	currentMinutes := localNow.Hour()*60 + localNow.Minute()
-
-	var allowedFromMinutes int
-	switch mealType {
-	case "breakfast":
-		allowedFromMinutes = 6 * 60
-	case "lunch":
-		allowedFromMinutes = 12 * 60
-	case "dinner":
-		allowedFromMinutes = 17 * 60
+func isValidShiftType(shiftType string) bool {
+	switch shiftType {
+	case "day", "night":
+		return true
 	default:
-		return fmt.Errorf("invalid meal type: %s", mealType)
+		return false
 	}
-
-	if currentMinutes < allowedFromMinutes {
-		return fmt.Errorf("%s is not available yet", mealType)
-	}
-
-	return nil
 }
