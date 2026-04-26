@@ -3,6 +3,55 @@
   margin: 0 auto;
 }
 
+.vote-form__alert {
+  margin-bottom: 20px;
+}
+
+.shift-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 28px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.shift-switcher__label {
+  font-weight: 700;
+}
+
+.shift-switcher__options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shift-switcher__locked {
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: white;
+  background: var(--accent-dark);
+  font-weight: 700;
+}
+
+.shift-switcher__option {
+  padding: 8px 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--text-soft);
+  background: rgba(17, 24, 39, 0.05);
+  font-weight: 600;
+}
+
+.shift-switcher__option--active {
+  color: white;
+  background: var(--accent-dark);
+}
+
 .lang-switcher {
   max-width: 760px;
   margin: 0 auto 16px;

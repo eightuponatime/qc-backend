@@ -9,6 +9,7 @@
     "errors.unknown_response_error": "Ошибка ответа сервера.",
     "errors.unexpected_client_error": "Произошла непредвиденная ошибка.",
     "errors.corporate_wifi_required": "Чтобы отправить отзыв, пожалуйста, подключитесь к корпоративному Wi-Fi и попробуйте снова",
+    "errors.voting_closed": "Голосование за период с 1 по 16 число уже закрыто.",
     "ui.dismiss": "Закрыть",
     "ui.available_now": "Уже доступно",
     "ui.opens_soon": "Скоро откроется",
@@ -16,6 +17,10 @@
     "ui.countdown_hours_minutes": "Осталось: {hours} ч {minutes} мин",
     "ui.countdown_minutes": "Осталось: {minutes} мин",
     "ui.vote_title": "Оценить питание",
+    "ui.shift_type": "Смена",
+    "ui.shift_day": "Дневная",
+    "ui.shift_night": "Ночная",
+    "ui.voting_unavailable": "Голосование недоступно",
     "ui.already_rated": "Оценено",
     "ui.not_rated_yet": "Еще не оценено",
     "ui.save": "Сохранить",
@@ -32,5 +37,8 @@
     "ui.remaining": "Осталось",
     "meals.breakfast": "Завтрак",
     "meals.lunch": "Обед",
-    "meals.dinner": "Ужин"
+    "meals.dinner": "Ужин",
+    "night_meals.breakfast": "Первый прием пищи",
+    "night_meals.lunch": "Второй прием пищи",
+    "night_meals.dinner": "Третий прием пищи"
 }

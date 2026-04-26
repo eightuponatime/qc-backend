@@ -9,9 +9,11 @@
   >
     <summary class="meal-card__summary">
       <div class="meal-card__summary-left">
-        <h3 class="meal-card__title">{{ mealLabel $mealType .T }}</h3>
+        <h3 class="meal-card__title">{{ shiftMealLabel $mealType .ShiftType .T }}</h3>
         <p class="meal-card__status">
-          {{ if $item }}
+          {{ if .VotingClosed }}
+            {{ index .T "ui.voting_unavailable" }}
+          {{ else if $item }}
             {{ index .T "ui.already_rated" }}
           {{ else }}
             {{ index .T "ui.not_rated_yet" }}
@@ -62,6 +64,7 @@
   {{ end }}
 
 
+      {{ if not .VotingClosed }}
       <form
         hx-post="/fragments/vote"
         hx-target="#vote-ui-container"
@@ -74,6 +77,7 @@
         {{ if and .AccessRestricted (eq .ActiveMeal $mealType) }}hidden{{ end }}
       >
         <input type="hidden" name="device_id" value="{{ .DeviceId }}">
+        <input type="hidden" name="shift_type" value="{{ .ShiftType }}">
         <input type="hidden" name="phone_model" value="{{ .PhoneModel }}">
         <input type="hidden" name="browser" value="{{ .Browser }}">
         <input type="hidden" name="meal_type" value="{{ $mealType }}">
@@ -142,5 +146,6 @@
           </div>
         {{ end }}
       </form>
+      {{ end }}
   </details>
 {{ end }}

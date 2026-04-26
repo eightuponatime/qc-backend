@@ -38,6 +38,12 @@ func initTemplates() {
 		"mealLabel": func(mealType string, t i18n.Translations) string {
 			return t["meals."+mealType]
 		},
+		"shiftMealLabel": func(mealType string, shiftType string, t i18n.Translations) string {
+			if shiftType == "night" {
+				return t["night_meals."+mealType]
+			}
+			return t["meals."+mealType]
+		},
 		"stars": func(rating *int16) string {
 			if rating == nil || *rating <= 0 {
 				return "—"
@@ -81,6 +87,39 @@ func initTemplates() {
 				return "ужин"
 			default:
 				return mealType
+			}
+		},
+		"shiftMealRu": func(mealType string, shiftType string) string {
+			if shiftType == "night" {
+				switch mealType {
+				case "breakfast":
+					return "первый прием пищи"
+				case "lunch":
+					return "второй прием пищи"
+				case "dinner":
+					return "третий прием пищи"
+				default:
+					return mealType
+				}
+			}
+
+			switch mealType {
+			case "breakfast":
+				return "завтрак"
+			case "lunch":
+				return "обед"
+			case "dinner":
+				return "ужин"
+			default:
+				return mealType
+			}
+		},
+		"shiftRu": func(shiftType string) string {
+			switch shiftType {
+			case "night":
+				return "Ночная смена"
+			default:
+				return "Дневная смена"
 			}
 		},
 		"weekdayRu": func(weekday string) string {

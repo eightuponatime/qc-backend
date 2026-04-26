@@ -9,7 +9,7 @@
   >
     <div class="meal-card__summary">
       <div class="meal-card__summary-left">
-        <h3 class="meal-card__title">{{ mealLabel $mealType .T }}</h3>
+        <h3 class="meal-card__title">{{ shiftMealLabel $mealType .ShiftType .T }}</h3>
         <p class="meal-card__status meal-card__status--countdown">
           {{ index .T "ui.not_available_yet" }}
         </p>

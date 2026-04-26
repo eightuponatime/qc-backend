@@ -9,6 +9,7 @@
     "errors.unknown_response_error": "Сервердің жауап қатесі.",
     "errors.unexpected_client_error": "Күтпеген қате орын алды.",
     "errors.corporate_wifi_required": "Пікір жіберу үшін корпоративтік Wi-Fi желісіне қосылып, қайта байқап көріңіз.",
+    "errors.voting_closed": "1-інен 16-сына дейінгі кезең бойынша дауыс беру жабылды.",
     "ui.dismiss": "Жабу",
     "ui.available_now": "Қазір қолжетімді",
     "ui.opens_soon": "Жақында ашылады",
@@ -16,6 +17,10 @@
     "ui.countdown_hours_minutes": "Қалды: {hours} сағ {minutes} мин",
     "ui.countdown_minutes": "Қалды: {minutes} мин",
     "ui.vote_title": "Тамақтануды бағалау",
+    "ui.shift_type": "Ауысым",
+    "ui.shift_day": "Күндізгі",
+    "ui.shift_night": "Түнгі",
+    "ui.voting_unavailable": "Дауыс беру қолжетімсіз",
     "ui.already_rated": "Бағаланған",
     "ui.not_rated_yet": "Әлі бағаланбаған",
     "ui.save": "Сақтау",
@@ -32,5 +37,8 @@
     "ui.remaining": "Қалды",
     "meals.breakfast": "Таңғы ас",
     "meals.lunch": "Түскі ас",
-    "meals.dinner": "Кешкі ас"
+    "meals.dinner": "Кешкі ас",
+    "night_meals.breakfast": "Бірінші ас",
+    "night_meals.lunch": "Екінші ас",
+    "night_meals.dinner": "Үшінші ас"
 }

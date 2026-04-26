@@ -9,6 +9,7 @@
     "errors.unknown_response_error": "Server response error.",
     "errors.unexpected_client_error": "An unexpected error occurred.",
     "errors.corporate_wifi_required": "Please connect to the corporate Wi-Fi to submit your review and try again.",
+    "errors.voting_closed": "Voting for the period from the 1st to the 16th is already closed.",
     "ui.dismiss": "Dismiss",
     "ui.available_now": "Available now",
     "ui.opens_soon": "Opening soon",
@@ -16,6 +17,10 @@
     "ui.countdown_hours_minutes": "Remaining: {hours}h {minutes}m",
     "ui.countdown_minutes": "Remaining: {minutes}m",
     "ui.vote_title": "Rate the meal",
+    "ui.shift_type": "Shift",
+    "ui.shift_day": "Day shift",
+    "ui.shift_night": "Night shift",
+    "ui.voting_unavailable": "Voting unavailable",
     "ui.already_rated": "Rated",
     "ui.not_rated_yet": "Not rated yet",
     "ui.save": "Save",
@@ -32,5 +37,8 @@
     "ui.remaining": "Remaining",
     "meals.breakfast": "Breakfast",
     "meals.lunch": "Lunch",
-    "meals.dinner": "Dinner"
+    "meals.dinner": "Dinner",
+    "night_meals.breakfast": "First meal",
+    "night_meals.lunch": "Second meal",
+    "night_meals.dinner": "Third meal"
 }
