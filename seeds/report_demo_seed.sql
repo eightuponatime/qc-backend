@@ -1,5 +1,5 @@
 -- Demo seed for analytics/report preview
--- Period: 2026-04-08 .. 2026-04-22
+-- Period: 2026-04-01 .. 2026-04-15
 -- Creates 10 demo users per day with breakfast/lunch and partial dinner votes.
 
 begin;
@@ -16,7 +16,7 @@ delete from votes
 where device_id like 'demo-shift-user-%';
 
 with period_dates as (
-    select generate_series(date '2026-04-08', date '2026-04-22', interval '1 day')::date as business_date
+    select generate_series(date '2026-04-01', date '2026-04-15', interval '1 day')::date as business_date
 ),
 devices as (
     select *
@@ -37,6 +37,7 @@ devices as (
 insert into votes (
     id,
     device_id,
+    shift_type,
     phone_model,
     browser,
     external_ip,
@@ -46,6 +47,7 @@ insert into votes (
 select
     uuid_generate_v5(uuid_ns_url(), format('vote-%s-%s', p.business_date, d.device_id)),
     d.device_id,
+    case when d.idx <= 5 then 'day' else 'night' end,
     d.phone_model,
     d.browser,
     '::1',
@@ -55,7 +57,7 @@ from period_dates p
 cross join devices d;
 
 with period_dates as (
-    select generate_series(date '2026-04-08', date '2026-04-22', interval '1 day')::date as business_date
+    select generate_series(date '2026-04-01', date '2026-04-15', interval '1 day')::date as business_date
 ),
 devices as (
     select *
@@ -98,7 +100,7 @@ from period_dates p
 cross join devices d;
 
 with period_dates as (
-    select generate_series(date '2026-04-08', date '2026-04-22', interval '1 day')::date as business_date
+    select generate_series(date '2026-04-01', date '2026-04-15', interval '1 day')::date as business_date
 ),
 devices as (
     select *
@@ -142,7 +144,7 @@ from period_dates p
 cross join devices d;
 
 with period_dates as (
-    select generate_series(date '2026-04-08', date '2026-04-22', interval '1 day')::date as business_date
+    select generate_series(date '2026-04-01', date '2026-04-15', interval '1 day')::date as business_date
 ),
 devices as (
     select *
