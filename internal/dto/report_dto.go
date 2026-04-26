@@ -29,6 +29,15 @@ type ReportMealStatsDto struct {
 	LowRatingsCount int    `json:"low_ratings_count"`
 }
 
+type ReportShiftSummaryDto struct {
+	ShiftType          string                      `json:"shift_type"`
+	TotalRatings       int                         `json:"total_ratings"`
+	TextReviewsCount   int                         `json:"text_reviews_count"`
+	RatingDistribution ReportRatingDistributionDto `json:"rating_distribution"`
+	WeekdayStats       []ReportWeekdayStatsDto     `json:"weekday_stats"`
+	MealStats          []ReportMealStatsDto        `json:"meal_stats"`
+}
+
 type ReportSummaryDto struct {
 	PeriodStart        string                      `json:"period_start"`
 	PeriodEnd          string                      `json:"period_end"`
@@ -41,6 +50,7 @@ type ReportSummaryDto struct {
 	RatingDistribution ReportRatingDistributionDto `json:"rating_distribution"`
 	WeekdayStats       []ReportWeekdayStatsDto     `json:"weekday_stats"`
 	MealStats          []ReportMealStatsDto        `json:"meal_stats"`
+	ShiftSummaries     []ReportShiftSummaryDto     `json:"shift_summaries"`
 	Insights           []string                    `json:"insights"`
 }
 
@@ -55,6 +65,7 @@ type ReportReviewDto struct {
 	BusinessDateDisplay string `json:"business_date_display"`
 	BusinessWeekday     string `json:"business_weekday"`
 	VoteID              string `json:"vote_id"`
+	ShiftType           string `json:"shift_type"`
 	MealType            string `json:"meal_type"`
 	Rating              int16  `json:"rating"`
 	Review              string `json:"review"`

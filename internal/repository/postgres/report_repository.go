@@ -23,7 +23,7 @@ func (r *ReportRepository) GetAllVotes(
 
 	var report []domain.ReportModel
 	err := sqlx.SelectContext(ctx, db, &report, `
-	select v.id as vote_id, vt.meal_type, vt.rating, 
+	select v.id as vote_id, v.shift_type, vt.meal_type, vt.rating, 
 		  vt.review, v.business_date
 	from votes as v
 	left join vote_items as vt on 

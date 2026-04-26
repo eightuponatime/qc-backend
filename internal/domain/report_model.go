@@ -8,6 +8,7 @@ import (
 
 type ReportModel struct {
 	VoteID       uuid.UUID `db:"vote_id"`
+	ShiftType    string    `db:"shift_type"`
 	MealType     *string   `db:"meal_type"`
 	Rating       *int16    `db:"rating"`
 	Review       *string   `db:"review"`
