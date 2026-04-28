@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"math"
 	"qc/internal/dto"
 	"qc/internal/i18n"
 )
@@ -144,6 +145,21 @@ func initTemplates() {
 		},
 		"hasText": func(value string) bool {
 			return value != ""
+		},
+		"averageChipClass": func(value float64) string {
+			if value >= 5 {
+				return "analytics-average-chip--5"
+			}
+
+			bucket := int(math.Floor(value))
+			if bucket < 1 {
+				bucket = 1
+			}
+			if bucket > 5 {
+				bucket = 5
+			}
+
+			return fmt.Sprintf("analytics-average-chip--%d", bucket)
 		},
 	})
 

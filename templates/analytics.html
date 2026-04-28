@@ -102,64 +102,86 @@
       </section>
 
       <section class="analytics-card">
-        <h2>По дням недели</h2>
-        <div class="analytics-weekdays">
-          {{ range .SelectedShiftSummary.WeekdayStats }}
-            <details class="analytics-details">
-              <summary>
-                <span>{{ weekdayRu .Weekday }}</span>
-                <small>Оценок: {{ .TotalRatings }}, отзывов: {{ .TextReviewsCount }}</small>
-              </summary>
-              <div class="analytics-stars analytics-stars--compact">
-                <div class="analytics-star analytics-star--5"><strong>5★</strong><span>{{ .RatingDistribution.Five }}</span></div>
-                <div class="analytics-star analytics-star--4"><strong>4★</strong><span>{{ .RatingDistribution.Four }}</span></div>
-                <div class="analytics-star analytics-star--3"><strong>3★</strong><span>{{ .RatingDistribution.Three }}</span></div>
-                <div class="analytics-star analytics-star--2"><strong>2★</strong><span>{{ .RatingDistribution.Two }}</span></div>
-                <div class="analytics-star analytics-star--1"><strong>1★</strong><span>{{ .RatingDistribution.One }}</span></div>
-              </div>
-              <div class="analytics-meals">
-                {{ range .MealStats }}
-                  <div>
-                    <strong>{{ shiftMealRu .MealType $.SelectedShift }}</strong>
-                    <span>Всего: {{ .TotalRatings }}</span>
-                    <span class="analytics-low-flag">Низких: {{ .LowRatingsCount }}</span>
-                  </div>
-                {{ end }}
-              </div>
-            </details>
-          {{ end }}
-        </div>
-      </section>
-
-      <section class="analytics-card">
-        <h2>Подробные отзывы</h2>
+        <h2>Аналитика по датам</h2>
         {{ range .DetailedReviewsByDate }}
           <details class="analytics-details">
             <summary>
-              <span>{{ .BusinessDateDisplay }}</span>
+              <span>{{ .BusinessDateDisplay }} · {{ .BusinessWeekday }}</span>
               <small>
-                Записей: {{ .TotalReviews }}
-                <span class="analytics-count analytics-count--positive">положительных: {{ .PositiveReviewsCount }}</span>
-                <span class="analytics-count analytics-count--low">требуют внимания: {{ .LowReviewsCount }}</span>
+                <span class="analytics-average-chip {{ averageChipClass .AverageRating }}">Средняя: {{ printf "%.1f" .AverageRating }}</span>
+                <span class="analytics-count">оценок: {{ .TotalRatings }}</span>
+                <span class="analytics-count">отзывов: {{ .TotalReviews }}</span>
               </small>
             </summary>
-            {{ if .Reviews }}
-              <div class="analytics-reviews">
-                {{ range .Reviews }}
-                  <article class="analytics-review">
-                    <div><strong>{{ .Rating }}★</strong><span>{{ shiftMealRu .MealType $.SelectedShift }}</span></div>
-                    <p>{{ if .Review }}{{ .Review }}{{ else }}Без текстового отзыва{{ end }}</p>
-                  </article>
-                {{ end }}
-              </div>
-            {{ else }}
-              <p class="analytics-muted">За эту дату отзывов нет.</p>
-            {{ end }}
+            <div class="analytics-meal-groups">
+              {{ range .Meals }}
+                <div class="analytics-meal-card">
+                  <div class="analytics-meal-card__head">
+                    <strong>{{ shiftMealRu .MealType $.SelectedShift }}</strong>
+                    <div class="analytics-meal-card__meta">
+                      <span>Оценок: {{ .TotalRatings }}</span>
+                      <span>Текстовых отзывов: {{ .TextReviewsCount }}</span>
+                    </div>
+                  </div>
+                  <div class="analytics-stars analytics-stars--compact analytics-stars--meal">
+                    <div class="analytics-star analytics-star--5"><strong>5★</strong><span>{{ .RatingDistribution.Five }}</span></div>
+                    <div class="analytics-star analytics-star--4"><strong>4★</strong><span>{{ .RatingDistribution.Four }}</span></div>
+                    <div class="analytics-star analytics-star--3"><strong>3★</strong><span>{{ .RatingDistribution.Three }}</span></div>
+                    <div class="analytics-star analytics-star--2"><strong>2★</strong><span>{{ .RatingDistribution.Two }}</span></div>
+                    <div class="analytics-star analytics-star--1"><strong>1★</strong><span>{{ .RatingDistribution.One }}</span></div>
+                  </div>
+                  <details class="analytics-details analytics-details--nested analytics-details--reviews">
+                    <summary>
+                      <span>Подробные отзывы</span>
+                    </summary>
+                    {{ if .Reviews }}
+                      <div class="analytics-review-filters" role="group" aria-label="Фильтр отзывов по оценке">
+                        <button type="button" class="analytics-filter-btn is-active" data-filter-rating="all">Все</button>
+                        <button type="button" class="analytics-filter-btn" data-filter-rating="1">1★</button>
+                        <button type="button" class="analytics-filter-btn" data-filter-rating="2">2★</button>
+                        <button type="button" class="analytics-filter-btn" data-filter-rating="3">3★</button>
+                        <button type="button" class="analytics-filter-btn" data-filter-rating="4">4★</button>
+                        <button type="button" class="analytics-filter-btn" data-filter-rating="5">5★</button>
+                      </div>
+                      <div class="analytics-reviews">
+                        {{ range .Reviews }}
+                          <article class="analytics-review" data-review-rating="{{ .Rating }}">
+                            <div><strong>{{ .Rating }}★</strong></div>
+                            <p>{{ .Review }}</p>
+                          </article>
+                        {{ end }}
+                      </div>
+                    {{ else }}
+                      <p class="analytics-muted">Текстовых отзывов нет.</p>
+                    {{ end }}
+                  </details>
+                </div>
+              {{ end }}
+            </div>
           </details>
         {{ end }}
       </section>
     </main>
   </div>
+  <script>
+    document.addEventListener("click", function (event) {
+      const button = event.target.closest(".analytics-filter-btn");
+      if (!button) return;
+
+      const container = button.closest(".analytics-details--reviews");
+      if (!container) return;
+
+      const filter = button.getAttribute("data-filter-rating");
+      container.querySelectorAll(".analytics-filter-btn").forEach((item) => {
+        item.classList.toggle("is-active", item === button);
+      });
+
+      container.querySelectorAll(".analytics-review[data-review-rating]").forEach((review) => {
+        const rating = review.getAttribute("data-review-rating");
+        review.hidden = filter !== "all" && rating !== filter;
+      });
+    });
+  </script>
 </body>
 </html>
 {{ end }}

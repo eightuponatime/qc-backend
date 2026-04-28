@@ -148,6 +148,10 @@ func (r *ReportService) CreateSummaryForPeriod(
 		"day":   0,
 		"night": 1,
 	}
+	dateSumsByShift := map[string]map[string]int{
+		"day":   {},
+		"night": {},
+	}
 
 	for _, model := range *reportModels {
 		businessDate := model.BusinessDate.In(location)
@@ -190,6 +194,7 @@ func (r *ReportService) CreateSummaryForPeriod(
 		}
 
 		weekdayName := businessDate.Weekday().String()
+		businessDateString := businessDate.Format("2006-01-02")
 		if idx, ok := weekdayIndexByName[weekdayName]; ok {
 			summary.WeekdayStats[idx].TotalRatings++
 			summary.WeekdayStats[idx].TextReviewsCount += boolToInt(review != "")
@@ -208,6 +213,11 @@ func (r *ReportService) CreateSummaryForPeriod(
 			}
 		}
 
+		shiftDateStats := ensureShiftDateStat(&summary.ShiftSummaries[shiftIdx], businessDate)
+		shiftDateStats.TotalRatings++
+		shiftDateStats.TextReviewsCount += boolToInt(review != "")
+		dateSumsByShift[model.ShiftType][businessDateString] += int(*model.Rating)
+
 		if idx, ok := mealIndexByType[*model.MealType]; ok {
 			summary.MealStats[idx].TotalRatings++
 			summary.ShiftSummaries[shiftIdx].MealStats[idx].TotalRatings++
@@ -223,6 +233,22 @@ func (r *ReportService) CreateSummaryForPeriod(
 		}
 		if *model.Rating >= 4 {
 			weekdayHighCounts[weekdayName]++
+		}
+	}
+
+	for shiftIdx := range summary.ShiftSummaries {
+		sort.SliceStable(summary.ShiftSummaries[shiftIdx].DateStats, func(i, j int) bool {
+			return summary.ShiftSummaries[shiftIdx].DateStats[i].BusinessDate < summary.ShiftSummaries[shiftIdx].DateStats[j].BusinessDate
+		})
+
+		for dateIdx := range summary.ShiftSummaries[shiftIdx].DateStats {
+			dateStat := &summary.ShiftSummaries[shiftIdx].DateStats[dateIdx]
+			if dateStat.TotalRatings == 0 {
+				continue
+			}
+
+			ratingSum := dateSumsByShift[summary.ShiftSummaries[shiftIdx].ShiftType][dateStat.BusinessDate]
+			dateStat.AverageRating = float64(ratingSum) / float64(dateStat.TotalRatings)
 		}
 	}
 
@@ -364,7 +390,25 @@ func newShiftSummary(shiftType string) dto.ReportShiftSummaryDto {
 			{MealType: "lunch"},
 			{MealType: "dinner"},
 		},
+		DateStats: []dto.ReportDateStatDto{},
 	}
+}
+
+func ensureShiftDateStat(summary *dto.ReportShiftSummaryDto, businessDate time.Time) *dto.ReportDateStatDto {
+	dateString := businessDate.Format("2006-01-02")
+	for idx := range summary.DateStats {
+		if summary.DateStats[idx].BusinessDate == dateString {
+			return &summary.DateStats[idx]
+		}
+	}
+
+	summary.DateStats = append(summary.DateStats, dto.ReportDateStatDto{
+		BusinessDate:        dateString,
+		BusinessDateDisplay: formatDayAndMonthRussian(businessDate),
+		BusinessWeekday:     weekdayNominativeRussian(businessDate.Weekday().String()),
+	})
+
+	return &summary.DateStats[len(summary.DateStats)-1]
 }
 
 func incrementDistribution(distribution *dto.ReportRatingDistributionDto, rating int16) {
@@ -575,14 +619,72 @@ func buildDetailedReviewsByDate(
 		result = append(result, dto.ReportDateReviewsDto{
 			BusinessDate:         dateString,
 			BusinessDateDisplay:  formatRussianDate(current),
+			BusinessWeekday:      weekdayNominativeRussian(current.Weekday().String()),
+			TotalRatings:         len(reviews),
+			AverageRating:        averageReviewRating(reviews),
 			TotalReviews:         len(textReviews),
 			PositiveReviewsCount: countPositiveReviews(textReviews),
 			LowReviewsCount:      countLowReviews(textReviews),
-			Reviews:              textReviews,
+			Meals:                buildMealReviews(reviews),
+			Reviews:              reviews,
 		})
 	}
 
 	return result
+}
+
+func buildMealReviews(reviews []dto.ReportReviewDto) []dto.ReportMealReviewsDto {
+	mealOrder := []string{"breakfast", "lunch", "dinner"}
+	result := make([]dto.ReportMealReviewsDto, 0, len(mealOrder))
+
+	for _, mealType := range mealOrder {
+		mealReviews := make([]dto.ReportReviewDto, 0)
+		textReviews := make([]dto.ReportReviewDto, 0)
+		distribution := dto.ReportRatingDistributionDto{}
+
+		for _, review := range reviews {
+			if review.MealType != mealType {
+				continue
+			}
+
+			mealReviews = append(mealReviews, review)
+			incrementDistribution(&distribution, review.Rating)
+			if hasTextReview(review) {
+				textReviews = append(textReviews, review)
+			}
+		}
+
+		sort.SliceStable(textReviews, func(i, j int) bool {
+			if textReviews[i].Rating != textReviews[j].Rating {
+				return textReviews[i].Rating < textReviews[j].Rating
+			}
+			return textReviews[i].Review < textReviews[j].Review
+		})
+
+		result = append(result, dto.ReportMealReviewsDto{
+			MealType:           mealType,
+			TotalRatings:       len(mealReviews),
+			TextReviewsCount:   len(textReviews),
+			RatingDistribution: distribution,
+			AverageRating:      averageReviewRating(mealReviews),
+			Reviews:            textReviews,
+		})
+	}
+
+	return result
+}
+
+func averageReviewRating(reviews []dto.ReportReviewDto) float64 {
+	if len(reviews) == 0 {
+		return 0
+	}
+
+	sum := 0
+	for _, review := range reviews {
+		sum += int(review.Rating)
+	}
+
+	return float64(sum) / float64(len(reviews))
 }
 
 func hasTextReview(review dto.ReportReviewDto) bool {
@@ -626,6 +728,25 @@ func formatRussianDate(date time.Time) string {
 	}
 
 	return fmt.Sprintf("%d %s %d", date.Day(), months[date.Month()], date.Year())
+}
+
+func formatDayAndMonthRussian(date time.Time) string {
+	months := map[time.Month]string{
+		time.January:   "января",
+		time.February:  "февраля",
+		time.March:     "марта",
+		time.April:     "апреля",
+		time.May:       "мая",
+		time.June:      "июня",
+		time.July:      "июля",
+		time.August:    "августа",
+		time.September: "сентября",
+		time.October:   "октября",
+		time.November:  "ноября",
+		time.December:  "декабря",
+	}
+
+	return fmt.Sprintf("%d %s", date.Day(), months[date.Month()])
 }
 
 func formatShortDateRange(periodStart, periodEnd time.Time) string {

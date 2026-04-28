@@ -1,6 +1,10 @@
 package impl
 
-import "html/template"
+import (
+	"fmt"
+	"html/template"
+	"math"
+)
 
 const emailBodyTemplate = `
 <!doctype html>
@@ -26,27 +30,33 @@ const emailBodyTemplate = `
       }
       .email-shift-header td,
       .email-weekday-layout td,
-      .email-meal-table td,
-      .email-meal-table th {
+      .email-date-layout td {
         display: block !important;
         width: 100% !important;
         box-sizing: border-box !important;
       }
-      .email-weekday-stars td {
+      .email-date-rating {
+        padding-top: 10px !important;
+        text-align: left !important;
+      }
+      .email-average-pill {
+        min-width: 0 !important;
+        padding: 6px 10px !important;
+        border-radius: 999px !important;
+        text-align: left !important;
+      }
+      .email-average-label,
+      .email-average-value {
         display: inline-block !important;
-        width: calc(20% - 8px) !important;
-        margin-bottom: 8px !important;
+        vertical-align: middle !important;
       }
-      .email-meal-table tr {
-        display: block !important;
-        border-bottom: 1px solid #e6edf3 !important;
+      .email-average-label {
+        margin-right: 8px !important;
+        font-size: 10px !important;
       }
-      .email-meal-table__head {
-        display: none !important;
-      }
-      .email-meal-table td {
-        border-bottom: none !important;
-        padding: 8px 12px !important;
+      .email-average-value {
+        margin-top: 0 !important;
+        font-size: 15px !important;
       }
     }
   </style>
@@ -100,25 +110,20 @@ const emailBodyTemplate = `
         </tr>
       </table>
 
-      <h3 style="margin:0 0 12px;font-size:18px;color:#102a43;">Статистика по дням недели</h3>
-      {{range $shift.WeekdayStats}}
+      <h3 style="margin:0 0 12px;font-size:18px;color:#102a43;">Статистика по датам</h3>
+      {{range $shift.DateStats}}
       <div style="padding:14px 0;border-bottom:1px solid #e6edf3;">
-        <table class="email-weekday-layout" role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+        <table class="email-date-layout" role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
           <tr>
             <td style="vertical-align:top;padding-right:10px;">
-              <div style="font-size:16px;font-weight:700;color:#102a43;margin-bottom:6px;">{{weekdayRu .Weekday}}</div>
+              <div style="font-size:16px;font-weight:700;color:#102a43;margin-bottom:6px;">{{.BusinessDateDisplay}} · {{.BusinessWeekday}}</div>
               <div style="font-size:13px;color:#486581;line-height:1.5;">Оценок: <strong>{{.TotalRatings}}</strong> · Отзывов: <strong>{{.TextReviewsCount}}</strong></div>
             </td>
-            <td style="vertical-align:top;">
-              <table class="email-weekday-stars" role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate;border-spacing:6px 0;">
-                <tr>
-                  <td align="center" style="background:#ecfdf5;border:1px solid #bbf7d0;border-radius:12px;padding:9px 4px;color:#166534;font-size:13px;"><strong>5★</strong><br>{{.RatingDistribution.Five}}</td>
-                  <td align="center" style="background:#f0fdf4;border:1px solid #dcfce7;border-radius:12px;padding:9px 4px;color:#15803d;font-size:13px;"><strong>4★</strong><br>{{.RatingDistribution.Four}}</td>
-                  <td align="center" style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:9px 4px;color:#92400e;font-size:13px;"><strong>3★</strong><br>{{.RatingDistribution.Three}}</td>
-                  <td align="center" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:9px 4px;color:#9a3412;font-size:13px;"><strong>2★</strong><br>{{.RatingDistribution.Two}}</td>
-                  <td align="center" style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:9px 4px;color:#991b1b;font-size:13px;"><strong>1★</strong><br>{{.RatingDistribution.One}}</td>
-                </tr>
-              </table>
+            <td class="email-date-rating" style="vertical-align:top;text-align:right;">
+              <div class="email-average-pill" style="display:inline-block;min-width:74px;background:{{avgRatingBackground .AverageRating}};border:1px solid {{avgRatingBorder .AverageRating}};border-radius:12px;padding:8px 10px;color:{{avgRatingText .AverageRating}};text-align:center;">
+                <span class="email-average-label" style="display:block;font-size:10px;font-weight:800;letter-spacing:0.03em;text-transform:uppercase;">Средняя</span>
+                <span class="email-average-value" style="display:block;margin-top:5px;font-size:17px;font-weight:900;line-height:1;">{{formatAverageRating .AverageRating}}</span>
+              </div>
             </td>
           </tr>
         </table>
@@ -138,10 +143,14 @@ const emailBodyTemplate = `
 
 func newHTMLTemplate(name string) *template.Template {
 	return template.New(name).Funcs(template.FuncMap{
-		"weekdayRu":   weekdayToRussian,
-		"mealRu":      mealToRussian,
-		"shiftRu":     shiftToRussian,
-		"shiftMealRu": shiftMealToRussian,
+		"weekdayRu":           weekdayToRussian,
+		"mealRu":              mealToRussian,
+		"shiftRu":             shiftToRussian,
+		"shiftMealRu":         shiftMealToRussian,
+		"formatAverageRating": formatAverageRating,
+		"avgRatingBackground": avgRatingBackground,
+		"avgRatingBorder":     avgRatingBorder,
+		"avgRatingText":       avgRatingText,
 	})
 }
 
@@ -169,4 +178,77 @@ func shiftMealToRussian(shiftType string, mealType string) string {
 	}
 
 	return mealToRussian(mealType)
+}
+
+func formatAverageRating(value float64) string {
+	if value == 0 {
+		return "—"
+	}
+
+	return fmt.Sprintf("%.1f", value)
+}
+
+func avgRatingBackground(value float64) string {
+	switch averageRatingBucket(value) {
+	case 5:
+		return "#ecfdf5"
+	case 4:
+		return "#f0fdf4"
+	case 3:
+		return "#fffbeb"
+	case 2:
+		return "#fff7ed"
+	default:
+		return "#fef2f2"
+	}
+}
+
+func avgRatingBorder(value float64) string {
+	switch averageRatingBucket(value) {
+	case 5:
+		return "#bbf7d0"
+	case 4:
+		return "#dcfce7"
+	case 3:
+		return "#fde68a"
+	case 2:
+		return "#fed7aa"
+	default:
+		return "#fecaca"
+	}
+}
+
+func avgRatingText(value float64) string {
+	switch averageRatingBucket(value) {
+	case 5:
+		return "#166534"
+	case 4:
+		return "#15803d"
+	case 3:
+		return "#92400e"
+	case 2:
+		return "#9a3412"
+	default:
+		return "#991b1b"
+	}
+}
+
+func averageRatingBucket(value float64) int {
+	if value == 0 {
+		return 3
+	}
+
+	if value >= 5 {
+		return 5
+	}
+
+	bucket := int(math.Floor(value))
+	if bucket < 1 {
+		return 1
+	}
+	if bucket > 5 {
+		return 5
+	}
+
+	return bucket
 }

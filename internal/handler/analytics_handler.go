@@ -10,6 +10,7 @@ import (
 	"qc/internal/repository"
 	"qc/internal/service"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -342,16 +343,13 @@ func filterDetailedReviewsByShift(items []dto.ReportDateReviewsDto, shiftType st
 	filtered := make([]dto.ReportDateReviewsDto, 0, len(items))
 	for _, item := range items {
 		reviews := filterReviewsByShift(item.Reviews, shiftType)
-		sort.SliceStable(reviews, func(i, j int) bool {
-			if reviews[i].Rating != reviews[j].Rating {
-				return reviews[i].Rating < reviews[j].Rating
-			}
-			return reviews[i].MealType < reviews[j].MealType
-		})
-
+		textReviewsCount := 0
 		positiveCount := 0
 		lowCount := 0
 		for _, review := range reviews {
+			if strings.TrimSpace(review.Review) != "" {
+				textReviewsCount++
+			}
 			if review.Rating >= 4 {
 				positiveCount++
 			}
@@ -363,14 +361,87 @@ func filterDetailedReviewsByShift(items []dto.ReportDateReviewsDto, shiftType st
 		filtered = append(filtered, dto.ReportDateReviewsDto{
 			BusinessDate:         item.BusinessDate,
 			BusinessDateDisplay:  item.BusinessDateDisplay,
-			TotalReviews:         len(reviews),
+			BusinessWeekday:      item.BusinessWeekday,
+			TotalRatings:         len(reviews),
+			AverageRating:        averageAnalyticsRating(reviews),
+			TotalReviews:         textReviewsCount,
 			PositiveReviewsCount: positiveCount,
 			LowReviewsCount:      lowCount,
+			Meals:                buildAnalyticsMealReviews(reviews),
 			Reviews:              reviews,
 		})
 	}
 
 	return filtered
+}
+
+func buildAnalyticsMealReviews(reviews []dto.ReportReviewDto) []dto.ReportMealReviewsDto {
+	mealOrder := []string{"breakfast", "lunch", "dinner"}
+	result := make([]dto.ReportMealReviewsDto, 0, len(mealOrder))
+
+	for _, mealType := range mealOrder {
+		mealReviews := make([]dto.ReportReviewDto, 0)
+		textReviews := make([]dto.ReportReviewDto, 0)
+		distribution := dto.ReportRatingDistributionDto{}
+
+		for _, review := range reviews {
+			if review.MealType != mealType {
+				continue
+			}
+
+			mealReviews = append(mealReviews, review)
+			incrementAnalyticsDistribution(&distribution, review.Rating)
+			if strings.TrimSpace(review.Review) != "" {
+				textReviews = append(textReviews, review)
+			}
+		}
+
+		sort.SliceStable(textReviews, func(i, j int) bool {
+			if textReviews[i].Rating != textReviews[j].Rating {
+				return textReviews[i].Rating < textReviews[j].Rating
+			}
+			return textReviews[i].Review < textReviews[j].Review
+		})
+
+		result = append(result, dto.ReportMealReviewsDto{
+			MealType:           mealType,
+			TotalRatings:       len(mealReviews),
+			TextReviewsCount:   len(textReviews),
+			RatingDistribution: distribution,
+			AverageRating:      averageAnalyticsRating(mealReviews),
+			Reviews:            textReviews,
+		})
+	}
+
+	return result
+}
+
+func averageAnalyticsRating(reviews []dto.ReportReviewDto) float64 {
+	if len(reviews) == 0 {
+		return 0
+	}
+
+	sum := 0
+	for _, review := range reviews {
+		sum += int(review.Rating)
+	}
+
+	return float64(sum) / float64(len(reviews))
+}
+
+func incrementAnalyticsDistribution(distribution *dto.ReportRatingDistributionDto, rating int16) {
+	switch rating {
+	case 5:
+		distribution.Five++
+	case 4:
+		distribution.Four++
+	case 3:
+		distribution.Three++
+	case 2:
+		distribution.Two++
+	case 1:
+		distribution.One++
+	}
 }
 
 func formatShortPeriod(periodStart, periodEnd time.Time) string {

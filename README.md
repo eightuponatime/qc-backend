@@ -17,3 +17,7 @@ current:
 <p>2. time of sending the report</p>
 <p>3. time we allow to vote until 16.*.* 8:00</p>
 <p>4. which static IP</p>
+
+<p>SMTP </p>
+Host: goldencompass-com.mail.protection.outlook.com
+enable 2auth https://account.microsoft.com/security

@@ -29,12 +29,22 @@ type ReportMealStatsDto struct {
 	LowRatingsCount int    `json:"low_ratings_count"`
 }
 
+type ReportDateStatDto struct {
+	BusinessDate        string  `json:"business_date"`
+	BusinessDateDisplay string  `json:"business_date_display"`
+	BusinessWeekday     string  `json:"business_weekday"`
+	TotalRatings        int     `json:"total_ratings"`
+	TextReviewsCount    int     `json:"text_reviews_count"`
+	AverageRating       float64 `json:"average_rating"`
+}
+
 type ReportShiftSummaryDto struct {
 	ShiftType          string                      `json:"shift_type"`
 	TotalRatings       int                         `json:"total_ratings"`
 	TextReviewsCount   int                         `json:"text_reviews_count"`
 	RatingDistribution ReportRatingDistributionDto `json:"rating_distribution"`
 	WeekdayStats       []ReportWeekdayStatsDto     `json:"weekday_stats"`
+	DateStats          []ReportDateStatDto         `json:"date_stats"`
 	MealStats          []ReportMealStatsDto        `json:"meal_stats"`
 }
 
@@ -71,13 +81,26 @@ type ReportReviewDto struct {
 	Review              string `json:"review"`
 }
 
+type ReportMealReviewsDto struct {
+	MealType           string                      `json:"meal_type"`
+	TotalRatings       int                         `json:"total_ratings"`
+	TextReviewsCount   int                         `json:"text_reviews_count"`
+	RatingDistribution ReportRatingDistributionDto `json:"rating_distribution"`
+	AverageRating      float64                     `json:"average_rating"`
+	Reviews            []ReportReviewDto           `json:"reviews"`
+}
+
 type ReportDateReviewsDto struct {
-	BusinessDate         string            `json:"business_date"`
-	BusinessDateDisplay  string            `json:"business_date_display"`
-	TotalReviews         int               `json:"total_reviews"`
-	PositiveReviewsCount int               `json:"positive_reviews_count"`
-	LowReviewsCount      int               `json:"low_reviews_count"`
-	Reviews              []ReportReviewDto `json:"reviews"`
+	BusinessDate         string                 `json:"business_date"`
+	BusinessDateDisplay  string                 `json:"business_date_display"`
+	BusinessWeekday      string                 `json:"business_weekday"`
+	TotalRatings         int                    `json:"total_ratings"`
+	AverageRating        float64                `json:"average_rating"`
+	TotalReviews         int                    `json:"total_reviews"`
+	PositiveReviewsCount int                    `json:"positive_reviews_count"`
+	LowReviewsCount      int                    `json:"low_reviews_count"`
+	Meals                []ReportMealReviewsDto `json:"meals"`
+	Reviews              []ReportReviewDto      `json:"reviews"`
 }
 
 type ReportAnalyticsSummaryDto struct {

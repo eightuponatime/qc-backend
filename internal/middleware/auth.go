@@ -46,15 +46,18 @@ func AuthRequired(cfg *config.Config) func(http.Handler) http.Handler {
 			var compareIp bool = compareIps(cfg, externalIp)
 			if !compareIp {
 				slog.Warn(
-					"vote access denied",
+					"vote access restriction bypassed",
 					slog.String("reason", "invalid_external_ip"),
 					slog.String("external_ip", externalIp),
 					slog.String("expected_ip", cfg.StaticExternalIp),
 					slog.String("path", r.URL.Path),
 				)
-				ctx := context.WithValue(r.Context(), AuthErrorKey, "invalid_external_ip")
-				next.ServeHTTP(w, r.WithContext(ctx))
-				return
+				// Temporary bypass: keep collecting external_ip in logs and DB,
+				// but do not block voting while the customer-side static IP is not configured.
+				//
+				// ctx := context.WithValue(r.Context(), AuthErrorKey, "invalid_external_ip")
+				// next.ServeHTTP(w, r.WithContext(ctx))
+				// return
 			}
 
 			slog.Info(
