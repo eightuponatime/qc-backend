@@ -56,58 +56,46 @@ func (s *ReportScheduler) runTick(ctx context.Context) {
 	}
 
 	currentTime := s.now().In(location)
-	currentDate := normalizeBusinessDate(currentTime, location)
-
-	if currentDate.Day() != 16 {
-		return
-	}
-	if currentTime.Hour() < s.cfg.ReportSendHour {
+	periodStart, periodEnd, ok := resolveLatestReportPeriod(currentTime, location, s.cfg.ReportSendHour)
+	if !ok {
 		return
 	}
 
-	previousPeriodStart := time.Date(currentDate.Year(), currentDate.Month(), 1, 0, 0, 0, 0, location)
-	previousPeriodEnd := time.Date(currentDate.Year(), currentDate.Month(), 15, 0, 0, 0, 0, location)
-
-	alreadySent, err := s.sentReportRepo.ExistsByPeriod(ctx, previousPeriodStart, previousPeriodEnd)
+	alreadySent, err := s.sentReportRepo.ExistsByPeriod(ctx, periodStart, periodEnd)
 	if err != nil {
 		slog.Error(
 			"report scheduler sent report check failed",
-			slog.String("period_start", previousPeriodStart.Format("2006-01-02")),
-			slog.String("period_end", previousPeriodEnd.Format("2006-01-02")),
+			slog.String("period_start", periodStart.Format("2006-01-02")),
+			slog.String("period_end", periodEnd.Format("2006-01-02")),
 			slog.Any("error", err),
 		)
 		return
 	}
 	if alreadySent {
-		slog.Info(
-			"report already sent for period",
-			slog.String("period_start", previousPeriodStart.Format("2006-01-02")),
-			slog.String("period_end", previousPeriodEnd.Format("2006-01-02")),
-		)
 		return
 	}
 
 	slog.Info(
 		"report scheduler sending period report",
-		slog.String("period_start", previousPeriodStart.Format("2006-01-02")),
-		slog.String("period_end", previousPeriodEnd.Format("2006-01-02")),
+		slog.String("period_start", periodStart.Format("2006-01-02")),
+		slog.String("period_end", periodEnd.Format("2006-01-02")),
 	)
 
-	if err := s.dispatchService.SendPeriodReport(ctx, previousPeriodStart, previousPeriodEnd); err != nil {
+	if err := s.dispatchService.SendPeriodReport(ctx, periodStart, periodEnd); err != nil {
 		slog.Error(
 			"report scheduler send failed",
-			slog.String("period_start", previousPeriodStart.Format("2006-01-02")),
-			slog.String("period_end", previousPeriodEnd.Format("2006-01-02")),
+			slog.String("period_start", periodStart.Format("2006-01-02")),
+			slog.String("period_end", periodEnd.Format("2006-01-02")),
 			slog.Any("error", err),
 		)
 		return
 	}
 
-	if err := s.sentReportRepo.MarkAsSent(ctx, previousPeriodStart, previousPeriodEnd); err != nil {
+	if err := s.sentReportRepo.MarkAsSent(ctx, periodStart, periodEnd); err != nil {
 		slog.Error(
 			"report scheduler mark-as-sent failed",
-			slog.String("period_start", previousPeriodStart.Format("2006-01-02")),
-			slog.String("period_end", previousPeriodEnd.Format("2006-01-02")),
+			slog.String("period_start", periodStart.Format("2006-01-02")),
+			slog.String("period_end", periodEnd.Format("2006-01-02")),
 			slog.Any("error", err),
 		)
 		return
@@ -115,7 +103,25 @@ func (s *ReportScheduler) runTick(ctx context.Context) {
 
 	slog.Info(
 		"period report sent successfully",
-		slog.String("period_start", previousPeriodStart.Format("2006-01-02")),
-		slog.String("period_end", previousPeriodEnd.Format("2006-01-02")),
+		slog.String("period_start", periodStart.Format("2006-01-02")),
+		slog.String("period_end", periodEnd.Format("2006-01-02")),
 	)
+}
+
+func resolveLatestReportPeriod(currentTime time.Time, location *time.Location, reportSendHour int) (time.Time, time.Time, bool) {
+	currentDate := normalizeBusinessDate(currentTime, location)
+
+	periodYear := currentDate.Year()
+	periodMonth := currentDate.Month()
+
+	if currentDate.Day() < 16 || (currentDate.Day() == 16 && currentTime.Hour() < reportSendHour) {
+		previousMonthDate := currentDate.AddDate(0, -1, 0)
+		periodYear = previousMonthDate.Year()
+		periodMonth = previousMonthDate.Month()
+	}
+
+	periodStart := time.Date(periodYear, periodMonth, 1, 0, 0, 0, 0, location)
+	periodEnd := time.Date(periodYear, periodMonth, 15, 0, 0, 0, 0, location)
+
+	return periodStart, periodEnd, true
 }
