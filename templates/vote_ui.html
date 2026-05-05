@@ -6,12 +6,6 @@
   >
     {{ template "vote_form_block.html" . }}
 
-    {{ if .SuccessMessage }}
-      <div class="ui-message ui-message--success">
-        <p>{{ .SuccessMessage }}</p>
-      </div>
-    {{ end }}
-
     {{ if .ErrorMessage }}
       <div class="ui-message ui-message--error">
         <p>{{ .ErrorMessage }}</p>

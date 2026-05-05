@@ -389,12 +389,7 @@ func buildVoteRequestFromForm(r *http.Request) (dto.VoteRequestDto, error) {
 		return dto.VoteRequestDto{}, fmt.Errorf("device_id is required")
 	}
 
-	mealType := r.FormValue("meal_type")
-	if mealType == "" {
-		return dto.VoteRequestDto{}, fmt.Errorf("meal_type is required")
-	}
-
-	item, err := buildSingleMealItemFromForm(r, mealType)
+	items, err := buildMealItemsFromForm(r)
 	if err != nil {
 		return dto.VoteRequestDto{}, err
 	}
@@ -404,38 +399,49 @@ func buildVoteRequestFromForm(r *http.Request) (dto.VoteRequestDto, error) {
 		ShiftType:  r.FormValue("shift_type"),
 		PhoneModel: r.FormValue("phone_model"),
 		Browser:    r.FormValue("browser"),
-		Items:      []dto.VoteMealItemDto{item},
+		Items:      items,
 	}, nil
 }
 
-func buildSingleMealItemFromForm(r *http.Request, mealType string) (dto.VoteMealItemDto, error) {
-	ratingStr := r.FormValue("rating")
-	reviewStr := r.FormValue("review")
+func buildMealItemsFromForm(r *http.Request) ([]dto.VoteMealItemDto, error) {
+	mealTypes := []string{"breakfast", "lunch", "dinner"}
+	items := make([]dto.VoteMealItemDto, 0, len(mealTypes))
 
-	if ratingStr == "" && reviewStr == "" {
-		return dto.VoteMealItemDto{}, fmt.Errorf("rating or review is required")
-	}
+	for _, mealType := range mealTypes {
+		ratingStr := r.FormValue(mealType + "_rating")
+		reviewStr := r.FormValue(mealType + "_review")
 
-	var rating *int16
-	if ratingStr != "" {
-		val, err := strconv.ParseInt(ratingStr, 10, 16)
-		if err != nil {
-			return dto.VoteMealItemDto{}, fmt.Errorf("%s rating invalid", mealType)
+		if ratingStr == "" && strings.TrimSpace(reviewStr) == "" {
+			continue
 		}
-		tmp := int16(val)
-		rating = &tmp
+
+		var rating *int16
+		if ratingStr != "" {
+			val, err := strconv.ParseInt(ratingStr, 10, 16)
+			if err != nil {
+				return nil, fmt.Errorf("%s rating invalid", mealType)
+			}
+			tmp := int16(val)
+			rating = &tmp
+		}
+
+		var review *string
+		if strings.TrimSpace(reviewStr) != "" {
+			review = &reviewStr
+		}
+
+		items = append(items, dto.VoteMealItemDto{
+			MealType: mealType,
+			Rating:   rating,
+			Review:   review,
+		})
 	}
 
-	var review *string
-	if reviewStr != "" {
-		review = &reviewStr
+	if len(items) == 0 {
+		return nil, fmt.Errorf("rating or review is required")
 	}
 
-	return dto.VoteMealItemDto{
-		MealType: mealType,
-		Rating:   rating,
-		Review:   review,
-	}, nil
+	return items, nil
 }
 
 //
@@ -492,27 +498,28 @@ func getMealAvailabilities(now time.Time, timezone string) (MealAvailability, Me
 	return breakfast, lunch, dinner, localNow, nil
 }
 
+func resolveBusinessDateByCutoff(localNow time.Time, cutoffHour int) time.Time {
+	if localNow.Hour() < cutoffHour {
+		localNow = localNow.AddDate(0, 0, -1)
+	}
+
+	return localNow
+}
+
 func (v *VoteHandler) getVotingClosedState(shiftType string, translations i18n.Translations) (bool, string) {
 	location, err := time.LoadLocation(v.cfg.BusinessTimezone)
 	if err != nil {
 		return false, ""
 	}
 
-	SHIFT_DATE := 15
-	BORDER_DATE := 16
-
 	now := time.Now().In(location)
-	normalizedShiftType := requestedShiftType(shiftType)
+	businessDate := resolveBusinessDateByCutoff(now, v.cfg.NightShiftVoteCutoffHour)
 
-	if now.Day() >= 1 && now.Day() <= SHIFT_DATE {
+	if businessDate.Day() >= 1 && businessDate.Day() <= 15 {
 		return false, ""
 	}
 
-	if normalizedShiftType == "night" && now.Day() == BORDER_DATE && now.Hour() < v.cfg.NightShiftVoteCutoffHour {
-		return false, ""
-	}
-
-	return true, buildVotingClosedMessage(now, i18nLanguageFromTranslations(translations))
+	return true, buildVotingClosedMessage(businessDate, i18nLanguageFromTranslations(translations))
 }
 
 func extractIp(r *http.Request) string {
@@ -634,17 +641,17 @@ func buildVotingClosedMessage(now time.Time, lang string) string {
 	switch lang {
 	case "en":
 		return fmt.Sprintf(
-			"Voting for the period from 1 to 16 %s is already closed.",
+			"Voting for the period from 1 to 15 %s is already closed.",
 			englishMonthName(now.Month()),
 		)
 	case "kk":
 		return fmt.Sprintf(
-			"%s айының 1-інен 16-сына дейінгі кезең бойынша дауыс беру жабылды.",
+			"%s айының 1-інен 15-іне дейінгі кезең бойынша дауыс беру жабылды.",
 			kazakhMonthName(now.Month()),
 		)
 	default:
 		return fmt.Sprintf(
-			"Голосование за период с 1 по 16 %s уже закрыто.",
+			"Голосование за период с 1 по 15 %s уже закрыто.",
 			russianMonthGenitive(now.Month()),
 		)
 	}

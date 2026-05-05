@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!container) return
 
   loadVoteUI().then(() => {
-    initMealVoteForms()
+    initVoteForm()
   })
 })
 
@@ -75,26 +75,26 @@ document.body.addEventListener("htmx:responseError", (event) => {
 document.body.addEventListener("htmx:afterSwap", (event) => {
   if (event.target && event.target.id === "vote-ui-container") {
     hideGlobalError()
-    initMealVoteForms()
+    initVoteForm()
   }
 })
 
 document.body.addEventListener("change", (event) => {
-  if (!event.target.matches(".js-meal-vote-form input[name='rating']")) return
+  if (!event.target.matches(".js-vote-form input[type='radio']")) return
 
-  const form = event.target.closest(".js-meal-vote-form")
+  const form = event.target.closest(".js-vote-form")
   if (!form) return
 
-  updateMealVoteButtonState(form)
+  updateVoteFormButtonState(form)
 })
 
 document.body.addEventListener("input", (event) => {
-  if (!event.target.matches(".js-meal-vote-form textarea[name='review']")) return
+  if (!event.target.matches(".js-vote-form textarea")) return
 
-  const form = event.target.closest(".js-meal-vote-form")
+  const form = event.target.closest(".js-vote-form")
   if (!form) return
 
-  updateMealVoteButtonState(form)
+  updateVoteFormButtonState(form)
 })
 
 function showGlobalError(message) {
@@ -113,34 +113,51 @@ function hideGlobalError() {
   container.textContent = ""
 }
 
-function initMealVoteForms() {
-  const forms = document.querySelectorAll(".js-meal-vote-form")
-  for (const form of forms) {
-    updateMealVoteButtonState(form)
-  }
+function initVoteForm() {
+  const form = document.querySelector(".js-vote-form")
+  if (!form) return
+
+  updateVoteFormButtonState(form)
 }
 
-function updateMealVoteButtonState(form) {
-  const submitButton = form.querySelector(".meal-card__button[type='submit']")
+function updateVoteFormButtonState(form) {
+  const submitButton = form.querySelector(".vote-submit-bar__button[type='submit']")
   if (!submitButton) return
+  const pendingLabel = form.querySelector(".vote-submit-bar__pending")
+  const successLabel = form.querySelector(".vote-submit-bar__success")
 
-  const selectedRating = form.querySelector("input[name='rating']:checked")?.value || ""
-  const review = form.querySelector("textarea[name='review']")?.value || ""
-  const hasExistingVote = form.dataset.hasExistingVote === "true"
+  const sections = form.querySelectorAll(".js-meal-vote-section")
+  let hasChanges = false
+  let hasIncompleteSection = false
 
-  if (!selectedRating) {
-    submitButton.disabled = true
-    return
+  for (const section of sections) {
+    const mealType = section.dataset.mealType
+    const initialRating = section.dataset.initialRating || ""
+    const initialReview = section.dataset.initialReview || ""
+    const selectedRating = form.querySelector(`input[name='${mealType}_rating']:checked`)?.value || ""
+    const review = form.querySelector(`textarea[name='${mealType}_review']`)?.value || ""
+    const trimmedReview = review.trim()
+    const hasAnyContent = selectedRating !== "" || trimmedReview !== ""
+    const isChanged = selectedRating !== initialRating || review !== initialReview
+
+    if (isChanged && !selectedRating && trimmedReview !== "") {
+      hasIncompleteSection = true
+    }
+
+    if (isChanged && hasAnyContent && selectedRating) {
+      hasChanges = true
+    }
   }
 
-  if (!hasExistingVote) {
-    submitButton.disabled = false
-    return
+  submitButton.disabled = !hasChanges || hasIncompleteSection
+
+  if (pendingLabel) {
+    pendingLabel.hidden = !(hasChanges || hasIncompleteSection)
   }
 
-  const initialRating = form.dataset.initialRating || ""
-  const initialReview = form.dataset.initialReview || ""
-  submitButton.disabled = selectedRating === initialRating && review === initialReview
+  if (successLabel && (hasChanges || hasIncompleteSection)) {
+    successLabel.hidden = true
+  }
 }
 
 function dismissAccessWarning(button) {

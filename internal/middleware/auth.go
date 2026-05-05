@@ -13,11 +13,6 @@ type contextKey string
 const ExternalIpKey contextKey = "external_ip"
 const AuthErrorKey contextKey = "auth_error"
 
-/*
-if user uses factory Wi-Fi, it's static external ip will be equal to the static ip in .env file.
-but if user's external ip doesn't equal, we ask permission to geolocation and get user's longitude
-and latitude, then compare with the ones stored in .env file (real coord of the factory)
-*/
 func AuthRequired(cfg *config.Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
