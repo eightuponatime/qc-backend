@@ -107,21 +107,3 @@ func (s *ReportScheduler) runTick(ctx context.Context) {
 		slog.String("period_end", periodEnd.Format("2006-01-02")),
 	)
 }
-
-func resolveLatestReportPeriod(currentTime time.Time, location *time.Location, reportSendHour int) (time.Time, time.Time, bool) {
-	currentDate := normalizeBusinessDate(currentTime, location)
-
-	periodYear := currentDate.Year()
-	periodMonth := currentDate.Month()
-
-	if currentDate.Day() < 16 || (currentDate.Day() == 16 && currentTime.Hour() < reportSendHour) {
-		previousMonthDate := currentDate.AddDate(0, -1, 0)
-		periodYear = previousMonthDate.Year()
-		periodMonth = previousMonthDate.Month()
-	}
-
-	periodStart := time.Date(periodYear, periodMonth, 1, 0, 0, 0, 0, location)
-	periodEnd := time.Date(periodYear, periodMonth, 15, 0, 0, 0, 0, location)
-
-	return periodStart, periodEnd, true
-}

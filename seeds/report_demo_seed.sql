@@ -1,5 +1,8 @@
 -- Demo seed for analytics/report preview
--- Period: 2026-04-01 .. 2026-04-15
+-- Full month: 2026-04-01 .. 2026-04-30
+-- Covers both report periods:
+--   1) 2026-04-01 .. 2026-04-15
+--   2) 2026-04-16 .. 2026-04-30
 -- Creates 10 demo users per day with breakfast/lunch and partial dinner votes.
 
 begin;
@@ -16,7 +19,7 @@ delete from votes
 where device_id like 'demo-shift-user-%';
 
 with period_dates as (
-    select generate_series(date '2026-04-01', date '2026-04-15', interval '1 day')::date as business_date
+    select generate_series(date '2026-04-01', date '2026-04-30', interval '1 day')::date as business_date
 ),
 devices as (
     select *
@@ -57,7 +60,7 @@ from period_dates p
 cross join devices d;
 
 with period_dates as (
-    select generate_series(date '2026-04-01', date '2026-04-15', interval '1 day')::date as business_date
+    select generate_series(date '2026-04-01', date '2026-04-30', interval '1 day')::date as business_date
 ),
 devices as (
     select *
@@ -100,7 +103,7 @@ from period_dates p
 cross join devices d;
 
 with period_dates as (
-    select generate_series(date '2026-04-01', date '2026-04-15', interval '1 day')::date as business_date
+    select generate_series(date '2026-04-01', date '2026-04-30', interval '1 day')::date as business_date
 ),
 devices as (
     select *
@@ -144,7 +147,7 @@ from period_dates p
 cross join devices d;
 
 with period_dates as (
-    select generate_series(date '2026-04-01', date '2026-04-15', interval '1 day')::date as business_date
+    select generate_series(date '2026-04-01', date '2026-04-30', interval '1 day')::date as business_date
 ),
 devices as (
     select *

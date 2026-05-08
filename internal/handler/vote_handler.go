@@ -507,19 +507,7 @@ func resolveBusinessDateByCutoff(localNow time.Time, cutoffHour int) time.Time {
 }
 
 func (v *VoteHandler) getVotingClosedState(shiftType string, translations i18n.Translations) (bool, string) {
-	location, err := time.LoadLocation(v.cfg.BusinessTimezone)
-	if err != nil {
-		return false, ""
-	}
-
-	now := time.Now().In(location)
-	businessDate := resolveBusinessDateByCutoff(now, v.cfg.NightShiftVoteCutoffHour)
-
-	if businessDate.Day() >= 1 && businessDate.Day() <= 15 {
-		return false, ""
-	}
-
-	return true, buildVotingClosedMessage(businessDate, i18nLanguageFromTranslations(translations))
+	return false, ""
 }
 
 func extractIp(r *http.Request) string {

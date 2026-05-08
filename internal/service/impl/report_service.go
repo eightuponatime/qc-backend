@@ -542,9 +542,7 @@ func (r *ReportService) getCurrentPeriodBounds() (*time.Location, time.Time, tim
 		return nil, time.Time{}, time.Time{}, fmt.Errorf("load business timezone: %w", err)
 	}
 
-	nowBusinessDate := normalizeBusinessDate(time.Now(), location)
-	periodStart := time.Date(nowBusinessDate.Year(), nowBusinessDate.Month(), 1, 0, 0, 0, 0, location)
-	periodEnd := time.Date(nowBusinessDate.Year(), nowBusinessDate.Month(), 15, 0, 0, 0, 0, location)
+	periodStart, periodEnd := resolveCurrentPeriodBounds(time.Now(), location, r.cfg.NightShiftVoteCutoffHour)
 	return location, periodStart, periodEnd, nil
 }
 
@@ -558,7 +556,7 @@ func buildCalendarDateStats(
 	periodEnd time.Time,
 	statsByDate map[string]*dto.ReportCalendarDateStatsDto,
 ) []dto.ReportCalendarDateStatsDto {
-	result := make([]dto.ReportCalendarDateStatsDto, 0, 15)
+	result := make([]dto.ReportCalendarDateStatsDto, 0, int(periodEnd.Sub(periodStart).Hours()/24)+1)
 
 	for current := periodStart; !current.After(periodEnd); current = current.AddDate(0, 0, 1) {
 		dateString := current.Format("2006-01-02")
@@ -597,7 +595,7 @@ func buildDetailedReviewsByDate(
 	periodEnd time.Time,
 	reviewsByDate map[string][]dto.ReportReviewDto,
 ) []dto.ReportDateReviewsDto {
-	result := make([]dto.ReportDateReviewsDto, 0, 15)
+	result := make([]dto.ReportDateReviewsDto, 0, int(periodEnd.Sub(periodStart).Hours()/24)+1)
 
 	for current := periodStart; !current.After(periodEnd); current = current.AddDate(0, 0, 1) {
 		dateString := current.Format("2006-01-02")

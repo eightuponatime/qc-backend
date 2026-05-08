@@ -47,8 +47,12 @@ func (e *EmailService) SendPeriodReport(ctx context.Context, periodStart, period
 		return fmt.Errorf("couldn't get email summary: %w", err)
 	}
 
-	accessValidFrom := periodEnd.AddDate(0, 0, 1)
-	accessValidUntil := accessValidFrom.AddDate(0, 0, 14)
+	location, err := time.LoadLocation(e.cfg.BusinessTimezone)
+	if err != nil {
+		return fmt.Errorf("load business timezone: %w", err)
+	}
+
+	accessValidFrom, accessValidUntil := resolveNextPeriodBounds(periodStart, location)
 	accessCode, err := e.analyticsAccessService.CreateAccessCode(ctx, accessValidFrom, accessValidUntil)
 	if err != nil {
 		return fmt.Errorf("couldn't create analytics access code: %w", err)

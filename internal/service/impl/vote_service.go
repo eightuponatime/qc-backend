@@ -141,10 +141,6 @@ func (s *VoteServiceImpl) resolveVotingBusinessDate(now time.Time, shiftType str
 	localNow := now.In(location)
 	businessDate := resolveBusinessDateByCutoff(localNow, s.cfg.NightShiftVoteCutoffHour)
 
-	if businessDate.Day() < 1 || businessDate.Day() > 15 {
-		return time.Time{}, fmt.Errorf("voting is closed")
-	}
-
 	return time.Date(
 		businessDate.Year(),
 		businessDate.Month(),
@@ -152,14 +148,6 @@ func (s *VoteServiceImpl) resolveVotingBusinessDate(now time.Time, shiftType str
 		0, 0, 0, 0,
 		location,
 	), nil
-}
-
-func resolveBusinessDateByCutoff(localNow time.Time, cutoffHour int) time.Time {
-	if localNow.Hour() < cutoffHour {
-		localNow = localNow.AddDate(0, 0, -1)
-	}
-
-	return localNow
 }
 
 func normalizeShiftType(shiftType string) string {
