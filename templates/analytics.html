@@ -17,6 +17,14 @@
         <h2>Архив вахт</h2>
       </div>
 
+      <a class="analytics-live-link {{ if .CurrentPeriod.IsSelected }}is-active{{ end }}" href="{{ .CurrentPeriod.URL }}">
+        <span class="analytics-live-link__badge">LIVE</span>
+        <span class="analytics-live-link__content">
+          <strong>Текущая вахта</strong>
+          <small>{{ .CurrentPeriod.Display }}</small>
+        </span>
+      </a>
+
       {{ if .Periods }}
         <nav class="analytics-periods" aria-label="Периоды отчетов">
           {{ range .Periods }}
@@ -34,6 +42,13 @@
     <main class="analytics-content">
       <section class="analytics-mobile-periods analytics-card">
         <p class="analytics-kicker">Периоды</p>
+        <a class="analytics-live-link analytics-live-link--mobile {{ if .CurrentPeriod.IsSelected }}is-active{{ end }}" href="{{ .CurrentPeriod.URL }}">
+          <span class="analytics-live-link__badge">LIVE</span>
+          <span class="analytics-live-link__content">
+            <strong>Текущая вахта</strong>
+            <small>{{ .CurrentPeriod.Display }}</small>
+          </span>
+        </a>
         {{ if .Periods }}
           <form method="get" action="/analytics" class="analytics-period-form">
             <input type="hidden" name="shift" value="{{ .SelectedShift }}">
@@ -62,6 +77,9 @@
         <p class="analytics-kicker">Контроль качества питания</p>
         <h1>{{ .Report.Summary.PeriodStartDisplay }} - {{ .Report.Summary.PeriodEndDisplay }}</h1>
         <p>{{ .SelectedShiftLabel }}</p>
+        {{ if .CurrentPeriod.IsSelected }}
+          <div class="analytics-live-chip">LIVE Текущая вахта</div>
+        {{ end }}
       </section>
 
       <section class="analytics-card analytics-card--filter">

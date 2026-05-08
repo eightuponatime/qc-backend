@@ -38,6 +38,7 @@ type analyticsPageData struct {
 	Title                  string
 	AnalyticsURL           string
 	Periods                []analyticsPeriodView
+	CurrentPeriod          analyticsCurrentPeriodView
 	ShiftTabs              []analyticsShiftTabView
 	SelectedShift          string
 	SelectedShiftLabel     string
@@ -60,6 +61,12 @@ type analyticsLoginPageData struct {
 	Error   string
 	Code    string
 	PostURL string
+}
+
+type analyticsCurrentPeriodView struct {
+	Display    string
+	URL        string
+	IsSelected bool
 }
 
 func NewAnalyticsHandler(
@@ -117,16 +124,30 @@ func (h *AnalyticsHandler) AnalyticsPage(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	currentReport, err := h.reportService.CreateAnalyticsSummary(r.Context())
+	if err != nil {
+		http.Error(w, "failed to build current analytics report", http.StatusInternalServerError)
+		return
+	}
+
+	selectedShift := selectedAnalyticsShift(r, report.Summary.ShiftSummaries)
+	currentPeriod := analyticsCurrentPeriodView{
+		Display:    "LIVE " + formatShortPeriod(mustParseAnalyticsDate(currentReport.PeriodStart), mustParseAnalyticsDate(currentReport.PeriodEnd)),
+		URL:        buildAnalyticsLink(currentReport.PeriodStart, currentReport.PeriodEnd, selectedShift),
+		IsSelected: report.PeriodStart == currentReport.PeriodStart && report.PeriodEnd == currentReport.PeriodEnd,
+	}
+
 	data := analyticsPageData{
 		Title:                  "Аналитика качества питания",
 		AnalyticsURL:           h.cfg.AnalyticsURL,
 		Periods:                buildAnalyticsPeriods(sentReports, report.PeriodStart, report.PeriodEnd, r.URL.Query().Get("shift")),
+		CurrentPeriod:          currentPeriod,
 		ShiftTabs:              buildAnalyticsShiftTabs(report.Summary.ShiftSummaries, report.PeriodStart, report.PeriodEnd, r.URL.Query().Get("shift")),
-		SelectedShift:          selectedAnalyticsShift(r, report.Summary.ShiftSummaries),
-		SelectedShiftLabel:     analyticsShiftLabel(selectedAnalyticsShift(r, report.Summary.ShiftSummaries)),
-		SelectedShiftSummary:   selectShiftSummary(report.Summary.ShiftSummaries, selectedAnalyticsShift(r, report.Summary.ShiftSummaries)),
-		AttentionRequiredItems: filterReviewsByShift(report.AttentionRequiredItems, selectedAnalyticsShift(r, report.Summary.ShiftSummaries)),
-		DetailedReviewsByDate:  filterDetailedReviewsByShift(report.DetailedReviewsByDate, selectedAnalyticsShift(r, report.Summary.ShiftSummaries)),
+		SelectedShift:          selectedShift,
+		SelectedShiftLabel:     analyticsShiftLabel(selectedShift),
+		SelectedShiftSummary:   selectShiftSummary(report.Summary.ShiftSummaries, selectedShift),
+		AttentionRequiredItems: filterReviewsByShift(report.AttentionRequiredItems, selectedShift),
+		DetailedReviewsByDate:  filterDetailedReviewsByShift(report.DetailedReviewsByDate, selectedShift),
 		Report:                 report,
 	}
 
@@ -446,4 +467,13 @@ func incrementAnalyticsDistribution(distribution *dto.ReportRatingDistributionDt
 
 func formatShortPeriod(periodStart, periodEnd time.Time) string {
 	return periodStart.Format("02.01.06") + " - " + periodEnd.Format("02.01.06")
+}
+
+func mustParseAnalyticsDate(value string) time.Time {
+	parsed, err := time.Parse("2006-01-02", value)
+	if err != nil {
+		return time.Time{}
+	}
+
+	return parsed
 }
