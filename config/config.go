@@ -48,7 +48,7 @@ func Load() (*Config, error) {
 		SmtpFrom:                 getEnv("SMTP_FROM", ""),
 		ReportTo:                 getEnv("REPORT_TO", ""),
 		AnalyticsURL:             getEnv("ANALYTICS_URL", "http://localhost:8080/analytics"),
-		NightShiftVoteCutoffHour: getEnvInt("NIGHT_SHIFT_VOTE_CUTOFF_HOUR", 8),
+		NightShiftVoteCutoffHour: getEnvInt("NIGHT_SHIFT_VOTE_CUTOFF_HOUR", 6),
 		ReportSendHour:           getEnvInt("REPORT_SEND_HOUR", 11),
 	}, nil
 }

@@ -123,7 +123,13 @@ func main() {
 
 	go reportScheduler.Start(context.Background())
 
-	logger.Info("server starting", slog.String("port", cfg.Port))
+	logger.Info(
+		"server starting",
+		slog.String("port", cfg.Port),
+		slog.String("business_timezone", cfg.BusinessTimezone),
+		slog.Int("night_shift_vote_cutoff_hour", cfg.NightShiftVoteCutoffHour),
+		slog.Int("report_send_hour", cfg.ReportSendHour),
+	)
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
 		logger.Error("server stopped", slog.Any("error", err))
 		os.Exit(1)
