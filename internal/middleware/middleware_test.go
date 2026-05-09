@@ -38,7 +38,7 @@ func TestAuthRequired_ValidExternalIp(t *testing.T) {
 	}
 }
 
-func TestAuthRequired_InvalidExternalIp(t *testing.T) {
+func TestAuthRequired_InvalidExternalIpStillAllowed(t *testing.T) {
 	cfg := &config.Config{
 		StaticExternalIp: "1.2.3.4",
 		GeoLatitude:      "43.0",
@@ -60,11 +60,8 @@ func TestAuthRequired_InvalidExternalIp(t *testing.T) {
 
 	middleware.AuthRequired(cfg)(next).ServeHTTP(w, r)
 
-	if called {
-		t.Error("next should not be called for invalid IP")
-	}
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", w.Code)
+	if !called {
+		t.Error("next should be called for invalid IP when IP restriction is disabled")
 	}
 }
 
@@ -99,7 +96,7 @@ func TestAuthRequired_ValidGeoLocation(t *testing.T) {
 	}
 }
 
-func TestAuthRequired_OutOfArea(t *testing.T) {
+func TestAuthRequired_OutOfAreaStillAllowed(t *testing.T) {
 	cfg := &config.Config{
 		StaticExternalIp: "1.2.3.4",
 		GeoLatitude:      "43.0",
@@ -125,10 +122,7 @@ func TestAuthRequired_OutOfArea(t *testing.T) {
 
 	middleware.AuthRequired(cfg)(next).ServeHTTP(w, r)
 
-	if called {
-		t.Error("next should not be called for out of area")
-	}
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", w.Code)
+	if !called {
+		t.Error("next should be called for out of area when IP restriction is disabled")
 	}
 }

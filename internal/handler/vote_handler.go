@@ -196,11 +196,6 @@ func (v *VoteHandler) SubmitVoteFragment(w http.ResponseWriter, r *http.Request)
 
 	authErrCode, _ := r.Context().Value(middleware.AuthErrorKey).(string)
 	if authErrCode != "" {
-		if authErrCode == "invalid_external_ip" {
-			v.renderRestrictedUI(w, r, "corporate_wifi_required")
-			return
-		}
-
 		v.renderErrorUI(
 			w,
 			r,
