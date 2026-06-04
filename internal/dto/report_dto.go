@@ -1,5 +1,11 @@
 package dto
 
+type SendReportToRequestDto struct {
+	Email       string `json:"email"`
+	PeriodStart string `json:"period_start,omitempty"`
+	PeriodEnd   string `json:"period_end,omitempty"`
+}
+
 type ReportVoteItemDto struct {
 	MealType     string `json:"meal_type"`
 	Rating       *int16 `json:"rating"`

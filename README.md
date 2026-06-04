@@ -8,16 +8,13 @@
 - **build**: build systems or dependencies
 - **chore**: maintenance tasks (routine that doesn't change functionality)
 
-<hr/>
-<br/>
-<p>1. which ports are available?
-current:
-    - 3001
-    - 5432</p>
-<p>2. time of sending the report</p>
-<p>3. time we allow to vote until 16.*.* 8:00</p>
-<p>4. which static IP</p>
+# avaialbility
 
-<p>SMTP </p>
-Host: goldencompass-com.mail.protection.outlook.com
-enable 2auth https://account.microsoft.com/security
+**global addr:**<br/>
+- http://91.**.9.**:33236
+- https://91.**.9.**:33237
+
+**local addr:**<br/>
+- http://172.172.0.246:33234
+- https://172.172.0.246:33235
+

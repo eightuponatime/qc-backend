@@ -21,6 +21,7 @@ type ReportService interface {
 
 type ReportDispatchService interface {
 	SendPeriodReport(ctx context.Context, periodStart, periodEnd time.Time) error
+	SendPeriodReportTo(ctx context.Context, periodStart, periodEnd time.Time, recipients []string) error
 }
 
 type AnalyticsAccessService interface {

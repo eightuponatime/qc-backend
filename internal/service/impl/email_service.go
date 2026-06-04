@@ -40,8 +40,17 @@ func (e *EmailService) SendEmail(ctx context.Context) error {
 	return e.SendPeriodReport(ctx, mustParseDate(summary.PeriodStart), mustParseDate(summary.PeriodEnd))
 }
 
-// main logic of configuring smtp server
 func (e *EmailService) SendPeriodReport(ctx context.Context, periodStart, periodEnd time.Time) error {
+	recipients := buildRecipients(e.cfg.ReportTo)
+	if len(recipients) == 0 {
+		return fmt.Errorf("no email recipients configured")
+	}
+
+	return e.SendPeriodReportTo(ctx, periodStart, periodEnd, recipients)
+}
+
+// main logic of configuring smtp server
+func (e *EmailService) SendPeriodReportTo(ctx context.Context, periodStart, periodEnd time.Time, recipients []string) error {
 	emailSummary, err := e.reportService.CreateSummaryForPeriod(ctx, periodStart, periodEnd)
 	if err != nil {
 		return fmt.Errorf("couldn't get email summary: %w", err)
@@ -64,7 +73,6 @@ func (e *EmailService) SendPeriodReport(ctx context.Context, periodStart, period
 		return fmt.Errorf("failed to set the email initiator: %w", err)
 	}
 
-	recipients := buildRecipients(e.cfg.ReportTo)
 	if len(recipients) == 0 {
 		return fmt.Errorf("no email recipients configured")
 	}
