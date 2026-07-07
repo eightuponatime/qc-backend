@@ -31,7 +31,7 @@ func main() {
 
 	logger := appLogger.Setup(cfg)
 
-	db, err := sqlx.Connect("postgres", cfg.DatabaseURL)
+	db, err := connectDatabase(context.Background(), logger, cfg.DatabaseURL)
 	if err != nil {
 		logger.Error("database connection failed", slog.Any("error", err))
 		os.Exit(1)
@@ -133,5 +133,38 @@ func main() {
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
 		logger.Error("server stopped", slog.Any("error", err))
 		os.Exit(1)
+	}
+}
+
+func connectDatabase(ctx context.Context, logger *slog.Logger, databaseURL string) (*sqlx.DB, error) {
+	delay := time.Second
+	const maxDelay = 10 * time.Second
+
+	for attempt := 1; ; attempt++ {
+		db, err := sqlx.Connect("postgres", databaseURL)
+		if err == nil {
+			if attempt > 1 {
+				logger.Info("database connected after retry", slog.Int("attempt", attempt))
+			}
+			return db, nil
+		}
+
+		logger.Warn(
+			"database connection failed; retrying",
+			slog.Int("attempt", attempt),
+			slog.Duration("retry_in", delay),
+			slog.Any("error", err),
+		)
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(delay):
+		}
+
+		delay *= 2
+		if delay > maxDelay {
+			delay = maxDelay
+		}
 	}
 }
